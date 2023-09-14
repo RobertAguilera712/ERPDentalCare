@@ -16,9 +16,10 @@ class Person(db.Model):
     sex = db.Column(db.Boolean, nullable=False)
     address = db.Column(db.String(255), nullable=False)
     cp = db.Column(db.String(10), nullable=False)
-    latitude = db.Column(db.Double, nullable=False)
-    longitude = db.Column(db.Double, nullable=False)
+    latitude = db.Column(db.String(20), nullable=False)
+    longitude = db.Column(db.String(20), nullable=False)
     phone = db.Column(db.String(12), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class User(db.Model):
@@ -26,6 +27,7 @@ class User(db.Model):
     email = db.Column(db.String(100), nullable=False, unique=True)
     image = db.Column(db.Text, nullable=True)
     password = db.Column(db.String(60), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 patient_allergies = db.Table(
@@ -41,10 +43,25 @@ class Patient(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("user.id"))
     person = db.relationship("Person", lazy=True, uselist=False)
     person_id = db.Column(db.Integer, db.ForeignKey("person.id"))
-    appointments = db.relationship("Appointment", lazy="dynamic", backref="patient")
-    allergy = db.relationship("Allergy", secondary=patient_allergies, lazy=True)
-    sells = db.relationship("Sell", lazy=True, backref='patient')
-    payments = db.relationship("Payment", lazy=True, backref='patient')
+    appointments_query = db.relationship(
+        "Appointment", lazy="dynamic", backref="patient"
+    )
+    allergies = db.relationship("Allergy", secondary=patient_allergies, lazy=True)
+    sells_query = db.relationship("Sell", lazy="dynamic", backref="patient")
+    payments_query = db.relationship("Payment", lazy="dynamic", backref="patient")
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
+
+    @hybrid_property
+    def appointments(self):
+        return self.appointments_query.filter(Appointment.status == 1).all()
+
+    @hybrid_property
+    def sells(self):
+        return self.sells.filter(Sell.status == 1).all()
+
+    @hybrid_property
+    def payments(self):
+        return self.payments.filter(Payment.status == 1).all()
 
 
 dentist_weekdays = db.Table(
@@ -70,14 +87,25 @@ class Dentist(db.Model):
     professional_license = db.Column(db.String(45), nullable=False)
     hired_at = db.Column(db.Date, nullable=False)
     position = db.Column(db.String(60), nullable=False)
-    appointments = db.relationship("Appointment", lazy="dynamic", backref="dentist")
-    schedules = db.relationship("Schedule", lazy="dynamic", backref="dentist")
+    appointments_query = db.relationship(
+        "Appointment", lazy="dynamic", backref="dentist"
+    )
+    schedules_query = db.relationship("Schedule", lazy="dynamic", backref="dentist")
     weekdays = db.relationship("Weekday", secondary=dentist_weekdays, lazy=True)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
     frequency = db.relationship("Frequency", lazy=True, uselist=False)
     frequency_id = db.Column(db.Integer, db.ForeignKey("frequency.id"))
     diplomas = db.relationship("Diploma", secondary=dentist_diplomas, lazy=True)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
+
+    @hybrid_property
+    def appointments(self):
+        return self.appointments_query.filter(Appointment.status == 1).all()
+
+    @hybrid_property
+    def schedules(self):
+        return self.schedules_query.filter(Schedule.status == 1).all()
 
 
 class Appointment(db.Model):
@@ -86,8 +114,13 @@ class Appointment(db.Model):
     end_date = db.Column(db.DateTime, nullable=False)
     dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"))
-    schedules = db.relationship("Schedule", lazy="dynamic", backref="appointment")
-    sells = db.relationship("Sell", lazy=True, backref='appointment')
+    schedules_query = db.relationship("Schedule", lazy="dynamic", backref="appointment")
+    sells = db.relationship("Sell", lazy=True, backref="appointment")
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
+
+    @hybrid_property
+    def schedules(self):
+        return self.schedules_query.filter(Schedule.status == 1).all()
 
 
 class Schedule(db.Model):
@@ -96,27 +129,33 @@ class Schedule(db.Model):
     end_date = db.Column(db.DateTime, nullable=False)
     dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
     appointment_id = db.Column(db.Integer, db.ForeignKey("appointment.id"))
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Weekday(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(45), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Diploma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
+    university = db.Column(db.String(80), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Allergy(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Frequency(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(45), nullable=False)
     duration = db.Column(db.Integer, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Supply(db.Model):
@@ -129,17 +168,22 @@ class Supply(db.Model):
     use_unit = db.Column(db.String(60), nullable=False)
     equivalence = db.Column(db.Double, nullable=False)
     image = db.Column(db.Text, nullable=True)
-    buys = db.relationship("SupplyBuys", lazy="dynamic", backref="supply")
-    sells = db.relationship("SellSupplies", lazy=True, backref='supply')
+    buys_query = db.relationship("SupplyBuys", lazy="dynamic", backref="supply")
+    sells_query = db.relationship("SellSupplies", lazy="dynamic", backref="supply")
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
+
+    @hybrid_property
+    def sells(self):
+        return self.sells_query.filter(Sell.status == 1).all()
 
     @hybrid_property
     def buy_records(self):
-        return self.buys.order_by(SupplyBuys.buy_date.desc()).all()
+        return self.buys_query.order_by(SupplyBuys.buy_date.desc()).all()
 
     @hybrid_property
     def inventory(self):
         return (
-            self.buys.filter(SupplyBuys.available_use_quantity > 0)
+            self.buys_query.filter(SupplyBuys.available_use_quantity > 0)
             .filter(SupplyBuys.expiration_date > date.today())
             .order_by(SupplyBuys.expiration_date)
             .all()
@@ -147,13 +191,13 @@ class Supply(db.Model):
 
     @hybrid_property
     def stock(self):
-        buys = self.buys.filter(SupplyBuys.expiration_date > date.today()).all()
+        buys = self.buys_query.filter(SupplyBuys.expiration_date > date.today()).all()
         stock = sum([i.available_quantity for i in buys])
         return stock
 
     @hybrid_property
     def stock_in_use_unit(self):
-        buys = self.buys.filter(SupplyBuys.expiration_date > date.today()).all()
+        buys = self.buys_query.filter(SupplyBuys.expiration_date > date.today()).all()
         stock = sum([i.available_use_quantity for i in buys])
         return stock
 
@@ -166,6 +210,7 @@ class SupplyBuys(db.Model):
     available_use_quantity = db.Column(db.Double, nullable=False)
     unit_cost = db.Column(db.Double, nullable=False)
     supply_id = db.Column(db.Integer, db.ForeignKey("supply.id"), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
     @hybrid_property
     def available_quantity(self):
@@ -175,8 +220,6 @@ class SupplyBuys(db.Model):
     def total_cost(self):
         return self.unit_cost * self.quantity
 
-
-# SERVICES, SELLS, PAYMENT, SAT, Sell details, service supplies
 
 service_supplies = db.Table(
     "service_supplies",
@@ -189,24 +232,39 @@ class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     price = db.Column(db.Double, nullable=False)
-    supplies = db.relationship("Supply", secondary=service_supplies, lazy=True)
-    sells = db.relationship("SellServices", lazy=True, backref='service')
+    supplies_query = db.relationship(
+        "Supply", secondary=service_supplies, lazy="dynamic"
+    )
+    sells_query = db.relationship("SellServices", lazy="dynamic", backref="service")
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
+
+    @hybrid_property
+    def supplies(self):
+        return self.supplies_query.filter(Supply.status == 1).all()
+
+    @hybrid_property
+    def sells(self):
+        return self.sells_query.filter(Sell.status == 1).all()
 
     @hybrid_property
     def cost(self):
-        return sum([supply.cost for supply in self.supplies])
+        return sum(
+            [supply.cost for supply in self.supplies.filter(Supply.status == 1).all()]
+        )
 
 
 class PaymentMethod(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
     key = db.Column(db.String(2), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class PaymentWay(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
     key = db.Column(db.String(3), nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class TaxRegime(db.Model):
@@ -214,6 +272,7 @@ class TaxRegime(db.Model):
     name = db.Column(db.String(255), nullable=False)
     key = db.Column(db.String(3), nullable=False)
     _type = db.Column(db.SmallInteger, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Sell(db.Model):
@@ -225,9 +284,22 @@ class Sell(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
-    services = db.relationship("SellServices", lazy=True, backref="Sell")
-    supplies = db.relationship("SellSupplies", lazy=True, backref="Sell")
-    payments = db.relationship("Payments", lazy=True, backref="Sell")
+    services_query = db.relationship("SellServices", lazy="dynamic", backref="Sell")
+    supplies_query = db.relationship("SellSupplies", lazy="dynamic", backref="Sell")
+    payments_query = db.relationship("Payment", lazy="dynamic", backref="Sell")
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
+
+    @hybrid_property
+    def services(self):
+        return self.services_query.filter(SellServices.status == 1).all()
+
+    @hybrid_property
+    def supplies(self):
+        return self.supplies_query.filter(SellSupplies.status == 1).all()
+
+    @hybrid_property
+    def payments(self):
+        return self.payments_query.filter(Payment.status == 1).all()
 
     @hybrid_property
     def balance(self):
@@ -247,6 +319,7 @@ class SellServices(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class SellSupplies(db.Model):
@@ -258,6 +331,7 @@ class SellSupplies(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
 
 
 class Payment(db.Model):
@@ -269,3 +343,4 @@ class Payment(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
+    status = db.Column(db.SmallInteger, nullable=False, default=1)
