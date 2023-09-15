@@ -7,9 +7,13 @@ from app.get.responses import weekday_response, frequency_response
 diploma_request = api.model(
     "diploma_request",
     {
-        "name": fields.String(required=True, description="The name of the diploma", max_length=80),
-        "university": fields.String(required=True, description="The name of the diploma", max_length=80),
-    }
+        "name": fields.String(
+            required=True, description="The name of the diploma", max_length=80
+        ),
+        "university": fields.String(
+            required=True, description="The name of the diploma", max_length=80
+        ),
+    },
 )
 
 dentist_request = api.model(
@@ -29,9 +33,33 @@ dentist_request = api.model(
             max_length=60,
         ),
         "weekdays": fields.List(fields.Integer),
-        "start_time": fields.Time(required=True, description="The time in which the dentist starts to work"),
-        "end_time": fields.Time(required=True, description="The time in which the dentist ends to work"),
-        "frequency_id": fields.Integer(required=True, description="The unique identifier for the frequency in which the dentist goes to the consult"),
+        "start_hour": fields.Integer(
+            required=True, description="The hour in which the dentist begins to work"
+        ),
+        "start_minute": fields.Integer(
+            required=True,
+            description="The minute of the start hour in which the dentist begins to work",
+        ),
+        "end_hour": fields.Integer(
+            required=True, description="The hour in which the dentist ends his work"
+        ),
+        "end_minute": fields.Integer(
+            required=True,
+            description="The minute of the end hour in which the dentist ends his work",
+        ),
+        "frequency_id": fields.Integer(
+            required=True,
+            description="The unique identifier for the frequency in which the dentist goes to the consult",
+        ),
         "diplomas": fields.List(fields.Nested(diploma_request)),
-    }
+    },
 )
+
+schedule_request = api.model("schedule_request", {
+        "start_date": fields.Date(
+            required=True, description="The date in from which the schedule will be created"
+        ),
+        "end_date": fields.Date(
+            required=True, description="The date in which the schedule will end"
+        ),
+})

@@ -34,10 +34,10 @@ dentist_response = api.model(
             description="The position that this dentist has in the dental office",
         ),
         "weekdays": fields.List(fields.Nested(weekday_response)),
-        "start_time": fields.Time(
+        "start_time": fields.String(
             required=True, description="The time in which the dentist starts to work"
         ),
-        "end_time": fields.Time(
+    "end_time": fields.String(
             required=True, description="The time in which the dentist ends to work"
         ),
         "frequency": fields.Nested(frequency_response),

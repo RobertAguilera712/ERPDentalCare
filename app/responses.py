@@ -18,8 +18,8 @@ person_response = api.model(
         "sex": fields.Boolean(description="Sex of the person"),
         "address": fields.String(description="Address of the person"),
         "cp": fields.String(description="Postal code"),
-        "latitude": fields.Float(description="Latitude of the person"),
-        "longitude": fields.Float(description="Longitude of the person"),
+        "latitude": fields.String(description="Latitude of the person"),
+        "longitude": fields.String(description="Longitude of the person"),
         "phone": fields.String(description="Phone number of the person"),
     },
 )
