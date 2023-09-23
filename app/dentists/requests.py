@@ -32,7 +32,7 @@ dentist_request = api.model(
             description="The position that this dentist has in the dental office",
             max_length=60,
         ),
-        "weekdays": fields.List(fields.Integer),
+        "weekdays": fields.List(fields.Integer, description="The id's of the days when the dentist work", required=True),
         "start_hour": fields.Integer(
             required=True, description="The hour in which the dentist begins to work"
         ),

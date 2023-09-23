@@ -10,7 +10,7 @@ dentists_ns = Namespace("api")
 
 
 @dentists_ns.route("/dentists")
-class PatientsListAPI(Resource):
+class DentistListAPI(Resource):
     @dentists_ns.marshal_list_with(dentist_response)
     def get(self):
         return Dentist.query.filter(Dentist.status == 1).all()

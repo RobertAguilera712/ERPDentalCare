@@ -221,26 +221,19 @@ class SupplyBuys(db.Model):
         return self.unit_cost * self.quantity
 
 
-service_supplies = db.Table(
-    "service_supplies",
-    db.Column("service_id", db.Integer, db.ForeignKey("service.id")),
-    db.Column("supply_id", db.Integer, db.ForeignKey("supply.id")),
-)
-
-
 class Service(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     price = db.Column(db.Double, nullable=False)
     supplies_query = db.relationship(
-        "Supply", secondary=service_supplies, lazy="dynamic"
+        "ServiceSupplies", lazy="dynamic", backref="service"
     )
     sells_query = db.relationship("SellServices", lazy="dynamic", backref="service")
     status = db.Column(db.SmallInteger, nullable=False, default=1)
 
     @hybrid_property
     def supplies(self):
-        return self.supplies_query.filter(Supply.status == 1).all()
+        return self.supplies_query.all()
 
     @hybrid_property
     def sells(self):
@@ -251,6 +244,18 @@ class Service(db.Model):
         return sum(
             [supply.cost for supply in self.supplies.filter(Supply.status == 1).all()]
         )
+
+
+class ServiceSupplies(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    quantity = db.Column(db.Integer, nullable=False)
+    service_id = db.Column(db.Integer, db.ForeignKey("service.id"), nullable=False)
+    supply_id = db.Column(db.Integer, db.ForeignKey("supply.id"), nullable=False)
+    supply = db.relationship("Supply", lazy=True, uselist=False)
+
+    @hybrid_property
+    def quantityCost(self):
+        return self.supply.cost / self.supply.equivalence * self.quantity
 
 
 class PaymentMethod(db.Model):

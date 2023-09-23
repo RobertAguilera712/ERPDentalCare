@@ -11,7 +11,7 @@ get_ns = Namespace("api/get")
 class TaxRegimeListAPI(Resource):
     @get_ns.marshal_list_with(tax_regime_response)
     def get(self):
-        return TaxRegime.query.all()
+        return TaxRegime.query.filter(TaxRegime.status == 1).all()
 
 
 @get_ns.route("/weekdays")

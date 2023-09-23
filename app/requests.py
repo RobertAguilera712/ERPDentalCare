@@ -33,7 +33,7 @@ person_request = api.model(
 
 
 user_request = api.model(
-    "UserRequest",
+    "user_requst",
     {
         "email": fields.String(
             required=True, description="Email address of the user", max_length=100
