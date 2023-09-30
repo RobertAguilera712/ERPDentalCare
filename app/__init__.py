@@ -1,5 +1,5 @@
 from flask import Flask 
-
+from flask_cors import CORS
 from .extensions import api, db
 from .config import Config
 from .patients.controller import patients_ns
@@ -22,6 +22,8 @@ def create_app():
     api.add_namespace(get_ns)
     api.add_namespace(supplies_ns)
     api.add_namespace(services_ns)
+
+    CORS(app)
 
     with app.app_context():
         create_db()
