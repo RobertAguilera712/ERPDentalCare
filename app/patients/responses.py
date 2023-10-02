@@ -6,6 +6,7 @@ from app.get.responses import allergy_response
 patient_response = api.model(
     "patient_response",
     {
+        "id": fields.Integer(description="Unique identifier for the patient"),
         "person": fields.Nested(person_response),
         "user": fields.Nested(user_response),
         "allergies": fields.Nested(allergy_response)
