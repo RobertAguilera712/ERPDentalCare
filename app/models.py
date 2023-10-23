@@ -110,7 +110,7 @@ class Dentist(db.Model):
 
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    star_date = db.Column(db.DateTime, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
     dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"))
@@ -125,7 +125,7 @@ class Appointment(db.Model):
 
 class Schedule(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    star_date = db.Column(db.DateTime, nullable=False)
+    start_date = db.Column(db.DateTime, nullable=False)
     end_date = db.Column(db.DateTime, nullable=False)
     dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
     appointment_id = db.Column(db.Integer, db.ForeignKey("appointment.id"))

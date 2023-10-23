@@ -6,6 +6,8 @@ from .patients.controller import patients_ns
 from .dentists.controller import dentists_ns
 from .supplies.controller import supplies_ns
 from .services.controller import services_ns
+from .schedules.controller import schedule_ns
+from .appointments.controller import appointments_ns
 from .get.controller import get_ns
 from app.models import *
 from sqlalchemy import inspect, text
@@ -22,6 +24,8 @@ def create_app():
     api.add_namespace(get_ns)
     api.add_namespace(supplies_ns)
     api.add_namespace(services_ns)
+    api.add_namespace(schedule_ns)
+    api.add_namespace(appointments_ns)
 
     CORS(app)
 
@@ -53,5 +57,6 @@ def create_db():
 
         db.session.execute(frequencies_query)
         db.session.commit()
+
         
         
