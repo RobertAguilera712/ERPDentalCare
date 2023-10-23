@@ -1,5 +1,5 @@
 from flask_restx import Resource, Namespace
-from app.models import Service, ServiceSupplies
+from app.models import Service, ServiceSupplies, RowStatus
 from app.extensions import db
 from .responses import service_response
 from .requests import service_request
@@ -12,7 +12,7 @@ services_ns = Namespace("api")
 class ServicesListAPI(Resource):
     @services_ns.marshal_list_with(service_response)
     def get(self):
-        return Service.query.filter(Service.status == 1).all()
+        return Service.query.filter(Service.status == RowStatus.ACTIVO).all()
 
     @services_ns.expect(service_request)
     @services_ns.marshal_with(service_response)

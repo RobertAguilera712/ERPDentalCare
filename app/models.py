@@ -2,6 +2,29 @@ from .extensions import db
 from sqlalchemy.ext.hybrid import hybrid_property
 from datetime import datetime
 from datetime import date
+from enum import Enum
+
+# TODO
+# - Add status as enums (Active, Disabled) for normal records
+# - Disabled, Available, Taken for schedule
+# - Scheduled, attended, Cancelled, for appointment
+
+
+class RowStatus(Enum):
+    INACTIVO = 0
+    ACTIVO = 1
+
+
+class ScheduleStatus(Enum):
+    INACTIVA = 0
+    DISPONIBLE = 1
+    OCUPADA = 2
+
+
+class AppointmentStatus(Enum):
+    CANCELADA = 0
+    AGENDADA = 1
+    ATENDIDA = 2
 
 
 class Person(db.Model):
@@ -19,7 +42,7 @@ class Person(db.Model):
     latitude = db.Column(db.String(20), nullable=False)
     longitude = db.Column(db.String(20), nullable=False)
     phone = db.Column(db.String(12), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class User(db.Model):
@@ -27,7 +50,7 @@ class User(db.Model):
     email = db.Column(db.String(100), nullable=False, unique=True)
     image = db.Column(db.Text, nullable=True)
     password = db.Column(db.String(60), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 patient_allergies = db.Table(
@@ -49,19 +72,19 @@ class Patient(db.Model):
     allergies = db.relationship("Allergy", secondary=patient_allergies, lazy=True)
     sells_query = db.relationship("Sell", lazy="dynamic", backref="patient")
     payments_query = db.relationship("Payment", lazy="dynamic", backref="patient")
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
     @hybrid_property
     def appointments(self):
-        return self.appointments_query.filter(Appointment.status == 1).all()
+        return self.appointments_query.all()
 
     @hybrid_property
     def sells(self):
-        return self.sells.filter(Sell.status == 1).all()
+        return self.sells.filter(Sell.status == RowStatus.ACTIVO).all()
 
     @hybrid_property
     def payments(self):
-        return self.payments.filter(Payment.status == 1).all()
+        return self.payments.filter(Payment.status == RowStatus.ACTIVO).all()
 
 
 dentist_weekdays = db.Table(
@@ -97,15 +120,15 @@ class Dentist(db.Model):
     frequency = db.relationship("Frequency", lazy=True, uselist=False)
     frequency_id = db.Column(db.Integer, db.ForeignKey("frequency.id"))
     diplomas = db.relationship("Diploma", secondary=dentist_diplomas, lazy=True)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
     @hybrid_property
     def appointments(self):
-        return self.appointments_query.filter(Appointment.status == 1).all()
+        return self.appointments_query.all()
 
     @hybrid_property
     def schedules(self):
-        return self.schedules_query.filter(Schedule.status == 1).all()
+        return self.schedules_query.all()
 
 
 class Appointment(db.Model):
@@ -116,11 +139,13 @@ class Appointment(db.Model):
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"))
     schedules_query = db.relationship("Schedule", lazy="dynamic", backref="appointment")
     sells = db.relationship("Sell", lazy=True, backref="appointment")
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(
+        db.Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.AGENDADA
+    )
 
     @hybrid_property
     def schedules(self):
-        return self.schedules_query.filter(Schedule.status == 1).all()
+        return self.schedules_query.all()
 
 
 class Schedule(db.Model):
@@ -129,33 +154,35 @@ class Schedule(db.Model):
     end_date = db.Column(db.DateTime, nullable=False)
     dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
     appointment_id = db.Column(db.Integer, db.ForeignKey("appointment.id"))
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(
+        db.Enum(ScheduleStatus), nullable=False, default=ScheduleStatus.DISPONIBLE
+    )
 
 
 class Weekday(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(45), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class Diploma(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
     university = db.Column(db.String(80), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class Allergy(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(80), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class Frequency(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(45), nullable=False)
     duration = db.Column(db.Integer, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class Supply(db.Model):
@@ -170,11 +197,11 @@ class Supply(db.Model):
     image = db.Column(db.Text, nullable=True)
     buys_query = db.relationship("SupplyBuys", lazy="dynamic", backref="supply")
     sells_query = db.relationship("SellSupplies", lazy="dynamic", backref="supply")
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
     @hybrid_property
     def sells(self):
-        return self.sells_query.filter(Sell.status == 1).all()
+        return self.sells_query.filter(Sell.status == RowStatus.ACTIVO).all()
 
     @hybrid_property
     def buy_records(self):
@@ -210,7 +237,7 @@ class SupplyBuys(db.Model):
     available_use_quantity = db.Column(db.Double, nullable=False)
     unit_cost = db.Column(db.Double, nullable=False)
     supply_id = db.Column(db.Integer, db.ForeignKey("supply.id"), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
     @hybrid_property
     def available_quantity(self):
@@ -229,7 +256,7 @@ class Service(db.Model):
         "ServiceSupplies", lazy="dynamic", backref="service"
     )
     sells_query = db.relationship("SellServices", lazy="dynamic", backref="service")
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
     @hybrid_property
     def supplies(self):
@@ -237,12 +264,12 @@ class Service(db.Model):
 
     @hybrid_property
     def sells(self):
-        return self.sells_query.filter(Sell.status == 1).all()
+        return self.sells_query.filter(Sell.status == RowStatus.ACTIVO).all()
 
     @hybrid_property
     def cost(self):
         return sum(
-            [supply.cost for supply in self.supplies.filter(Supply.status == 1).all()]
+            [supply.cost for supply in self.supplies.filter(Supply.status == RowStatus.ACTIVO).all()]
         )
 
 
@@ -262,14 +289,14 @@ class PaymentMethod(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
     key = db.Column(db.String(2), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class PaymentWay(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(60), nullable=False)
     key = db.Column(db.String(3), nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class TaxRegime(db.Model):
@@ -277,7 +304,7 @@ class TaxRegime(db.Model):
     name = db.Column(db.String(255), nullable=False)
     key = db.Column(db.String(3), nullable=False)
     _type = db.Column(db.SmallInteger, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class Sell(db.Model):
@@ -292,19 +319,19 @@ class Sell(db.Model):
     services_query = db.relationship("SellServices", lazy="dynamic", backref="Sell")
     supplies_query = db.relationship("SellSupplies", lazy="dynamic", backref="Sell")
     payments_query = db.relationship("Payment", lazy="dynamic", backref="Sell")
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
     @hybrid_property
     def services(self):
-        return self.services_query.filter(SellServices.status == 1).all()
+        return self.services_query.filter(SellServices.status == RowStatus.ACTIVO).all()
 
     @hybrid_property
     def supplies(self):
-        return self.supplies_query.filter(SellSupplies.status == 1).all()
+        return self.supplies_query.filter(SellSupplies.status == RowStatus.ACTIVO).all()
 
     @hybrid_property
     def payments(self):
-        return self.payments_query.filter(Payment.status == 1).all()
+        return self.payments_query.filter(Payment.status == RowStatus.ACTIVO).all()
 
     @hybrid_property
     def balance(self):
@@ -324,7 +351,7 @@ class SellServices(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class SellSupplies(db.Model):
@@ -336,7 +363,7 @@ class SellSupplies(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
 
 
 class Payment(db.Model):
@@ -348,4 +375,4 @@ class Payment(db.Model):
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
-    status = db.Column(db.SmallInteger, nullable=False, default=1)
+    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)

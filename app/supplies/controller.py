@@ -1,5 +1,5 @@
 from flask_restx import Resource, Namespace
-from app.models import Supply
+from app.models import Supply, RowStatus
 from app.extensions import db
 from .responses import supply_response
 from .requests import supply_request
@@ -12,7 +12,7 @@ supplies_ns = Namespace("api")
 class SupplyListAPI(Resource):
     @supplies_ns.marshal_list_with(supply_response)
     def get(self):
-        return Supply.query.filter(Supply.status == 1).all()
+        return Supply.query.filter(Supply.status == RowStatus.ACTIVO).all()
 
     @supplies_ns.expect(supply_request)
     @supplies_ns.marshal_with(supply_response)

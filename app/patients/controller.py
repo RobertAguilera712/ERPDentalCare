@@ -1,5 +1,5 @@
 from flask_restx import Resource, Namespace
-from app.models import Person, User, Patient, Allergy
+from app.models import Person, User, Patient, Allergy, RowStatus
 from app.extensions import db
 from .responses import patient_response
 from .requests import patient_request
@@ -12,7 +12,7 @@ patients_ns = Namespace("api")
 class PatientsListAPI(Resource):
     @patients_ns.marshal_list_with(patient_response)
     def get(self):
-        return Patient.query.filter(Patient.status == 1).all()
+        return Patient.query.filter(Patient.status == RowStatus.ACTIVO).all()
 
     @patients_ns.expect(patient_request)
     @patients_ns.marshal_with(patient_response)
