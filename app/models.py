@@ -4,22 +4,9 @@ from datetime import datetime
 from datetime import date
 from enum import Enum
 
-# TODO
-# - Add status as enums (Active, Disabled) for normal records
-# - Disabled, Available, Taken for schedule
-# - Scheduled, attended, Cancelled, for appointment
-
-
 class RowStatus(Enum):
     INACTIVO = 0
     ACTIVO = 1
-
-
-class ScheduleStatus(Enum):
-    INACTIVA = 0
-    DISPONIBLE = 1
-    OCUPADA = 2
-
 
 class AppointmentStatus(Enum):
     CANCELADA = 0
@@ -113,7 +100,6 @@ class Dentist(db.Model):
     appointments_query = db.relationship(
         "Appointment", lazy="dynamic", backref="dentist"
     )
-    schedules_query = db.relationship("Schedule", lazy="dynamic", backref="dentist")
     weekdays = db.relationship("Weekday", secondary=dentist_weekdays, lazy=True)
     start_time = db.Column(db.Time, nullable=False)
     end_time = db.Column(db.Time, nullable=False)
@@ -126,10 +112,6 @@ class Dentist(db.Model):
     def appointments(self):
         return self.appointments_query.all()
 
-    @hybrid_property
-    def schedules(self):
-        return self.schedules_query.all()
-
 
 class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -137,25 +119,9 @@ class Appointment(db.Model):
     end_date = db.Column(db.DateTime, nullable=False)
     dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"))
-    schedules_query = db.relationship("Schedule", lazy="dynamic", backref="appointment")
     sells = db.relationship("Sell", lazy=True, backref="appointment")
     status = db.Column(
         db.Enum(AppointmentStatus), nullable=False, default=AppointmentStatus.AGENDADA
-    )
-
-    @hybrid_property
-    def schedules(self):
-        return self.schedules_query.all()
-
-
-class Schedule(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    start_date = db.Column(db.DateTime, nullable=False)
-    end_date = db.Column(db.DateTime, nullable=False)
-    dentist_id = db.Column(db.Integer, db.ForeignKey("dentist.id"))
-    appointment_id = db.Column(db.Integer, db.ForeignKey("appointment.id"))
-    status = db.Column(
-        db.Enum(ScheduleStatus), nullable=False, default=ScheduleStatus.DISPONIBLE
     )
 
 

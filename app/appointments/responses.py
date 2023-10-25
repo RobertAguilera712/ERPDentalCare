@@ -26,5 +26,6 @@ appointment_response = api.model(
                 description="The sells that were generated in this appointment. TODO"
             )
         ),
+        "status": fields.String(description="The status of this appointment")
     },
 )

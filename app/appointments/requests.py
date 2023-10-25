@@ -12,6 +12,7 @@ create_appointment_request = api.model(
             required=True,
             description="The id of the patient to which we want to create this appointment",
         ),
-        "schedules": fields.List(fields.Integer, description="The id's of the schedules that will be used to register this appointment", required=True),
+        "start_date": fields.DateTime(required=True, description="The datetime in which this appointment will start"),
+        "end_date": fields.DateTime(required=True, description="The datetime in which this appointment will end"),
     },
 )

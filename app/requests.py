@@ -16,15 +16,19 @@ person_request = api.model(
         "birthday": fields.Date(required=True, description="Birthday of the person"),
         "rfc": fields.String(description="RFC of the person", max_length=13),
         "tax_regime_id": fields.Integer(
-            required=True, description="The id of the tax regime for this person"
+            description="The id of the tax regime for this person"
         ),
         "sex": fields.Boolean(required=True, description="Sex of the person"),
         "address": fields.String(
             required=True, description="Address of the person", max_length=255
         ),
         "cp": fields.String(required=True, description="Postal code", max_length=10),
-        "latitude": fields.String(required=True, description="Latitude of the person", max_length=20),
-        "longitude": fields.String(required=True, description="Longitude of the person", max_length=20),
+        "latitude": fields.String(
+            required=True, description="Latitude of the person", max_length=20
+        ),
+        "longitude": fields.String(
+            required=True, description="Longitude of the person", max_length=20
+        ),
         "phone": fields.String(
             required=True, description="Phone number of the person", max_length=12
         ),
@@ -33,7 +37,7 @@ person_request = api.model(
 
 
 user_request = api.model(
-    "user_requst",
+    "user_request",
     {
         "email": fields.String(
             required=True, description="Email address of the user", max_length=100

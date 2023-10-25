@@ -6,7 +6,6 @@ from .patients.controller import patients_ns
 from .dentists.controller import dentists_ns
 from .supplies.controller import supplies_ns
 from .services.controller import services_ns
-from .schedules.controller import schedule_ns
 from .appointments.controller import appointments_ns
 from .get.controller import get_ns
 from app.models import *
@@ -24,7 +23,6 @@ def create_app():
     api.add_namespace(get_ns)
     api.add_namespace(supplies_ns)
     api.add_namespace(services_ns)
-    api.add_namespace(schedule_ns)
     api.add_namespace(appointments_ns)
 
     CORS(app)
@@ -52,11 +50,67 @@ def create_db():
         db.session.commit()
 
         # Insert frequencies
-
         frequencies_query = text("""INSERT INTO `frequency` (`id`, `name`, `duration`, `status`) VALUES (1, 'Semanal', 7, 'ACTIVO'), (2, 'Quincenal', 14, 'ACTIVO'), (3, 'Mensual', 28, 'ACTIVO'); """)
 
         db.session.execute(frequencies_query)
         db.session.commit()
+
+        # Insert a dentist
+
+        # Create a new dentist and a new patient
+        new_dentist = Dentist()
+
+        # Define data for the dentist
+        new_dentist.user = User(email="dentist@example.com", password="password")
+        new_dentist.person = Person(
+            name="John",
+            surname="Doe",
+            lastname="Smith",
+            birthday="1990-01-01",
+            sex=True,
+            address="123 Dentist St",
+            cp="12345",
+            latitude="12.3456",
+            longitude="78.9012",
+            phone="1234567890",
+        )
+        new_dentist.professional_license = "D12345"
+        new_dentist.hired_at = "2023-10-24"
+        new_dentist.position = "Dentist"
+        new_dentist.start_time = "08:00:00"
+        new_dentist.end_time = "17:00:00"
+        new_dentist.weekdays.extend = Weekday.query.filter(Weekday.id.in_([1, 2, 3, 4, 5])).all()
+        new_dentist.diplomas.append(Diploma(name="Orthodontist", university="Dental College"))
+        new_dentist.frequency_id = 1
+
+        db.session.add(new_dentist)
+        db.session.commit()
+
+        new_patient = Patient()
+
+        # Define data for the patient
+        new_patient.user = User(email="patient@example.com", password="password")
+        new_patient.person = Person(
+            name="Alice",
+            surname="Johnson",
+            lastname="Brown",
+            birthday="1995-05-15",
+            sex=False,
+            address="456 Patient Ln",
+            cp="54321",
+            latitude="34.5678",
+            longitude="87.6543",
+            phone="987-654-3210",
+            status="ACTIVO"
+        )
+        new_patient.allergies.append(Allergy(name='paracetamol'))
+
+        db.session.add(new_patient)
+        db.session.commit()
+
+
+
+
 
         
         

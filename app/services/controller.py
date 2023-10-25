@@ -14,7 +14,7 @@ class ServicesListAPI(Resource):
     def get(self):
         return Service.query.filter(Service.status == RowStatus.ACTIVO).all()
 
-    @services_ns.expect(service_request)
+    @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def post(self):
         service = Service(
