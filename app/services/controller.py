@@ -44,7 +44,7 @@ class ServicesApi(Resource):
         service = Service.query.get_or_404(id)
         return service
 
-    @services_ns.expect(service_request)
+    @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def put(self, id):
         service = Service.query.get_or_404(id)

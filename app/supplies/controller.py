@@ -14,7 +14,7 @@ class SupplyListAPI(Resource):
     def get(self):
         return Supply.query.filter(Supply.status == RowStatus.ACTIVO).all()
 
-    @supplies_ns.expect(supply_request)
+    @supplies_ns.expect(supply_request, validate=True)
     @supplies_ns.marshal_with(supply_response)
     def post(self):
         supply = Supply(**supplies_ns.payload)
@@ -31,7 +31,7 @@ class SupplyApi(Resource):
         supply = Supply.query.get_or_404(id)
         return supply
 
-    @supplies_ns.expect(supply_request)
+    @supplies_ns.expect(supply_request, validate=True)
     @supplies_ns.marshal_with(supply_response)
     def put(self, id):
         supply = Supply.query.get_or_404(id)
