@@ -1,29 +1,50 @@
 from flask_restx import Resource, Namespace, abort
-from app.models import Appointment
-from app.extensions import db
+from app.models import (
+    Appointment,
+    AppointmentStatus,
+    Sell,
+    SellServices,
+    SellSupplies,
+    Service,
+    Supply,
+    UserRole,
+)
+from app.extensions import db, authorizations, role_required
+from sqlalchemy import or_, and_
+from flask_jwt_extended import jwt_required, current_user
 from .responses import appointment_response
-from .requests import create_appointment_request
+from .requests import (
+    create_appointment_request,
+    get_appointments_request,
+    finish_appointment_request,
+)
 from datetime import datetime
 
-appointments_ns = Namespace("api")
+appointments_ns = Namespace("api", authorizations=authorizations)
 
 
 @appointments_ns.route("/appointment")
 class AppointmentsAPI(Resource):
+    method_decorators = [jwt_required()]
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @appointments_ns.expect(create_appointment_request, validate=True)
     @appointments_ns.marshal_with(appointment_response)
     def post(self):
         request = appointments_ns.payload
 
-        date_format = "%Y-%m-%d"
+        start_date = datetime.fromisoformat(request["start_date"])
+        end_date = datetime.fromisoformat(request["end_date"])
 
+        existing_appointment = Appointment.query.filter(
+            (
+                Appointment.start_date.between(start_date, end_date)
+                | Appointment.end_date.between(start_date, end_date)
+            )
+        ).all()
 
-        start_date = datetime.strptime(request["start_date"], date_format) 
-        end_date = datetime.strptime(request["end_date"], date_format) 
-
-        existing_appointment = Appointment.query.filter((Appointment.start_date == start_date) | (Appointment.end_date == end_date)).first()
-        
-        if (existing_appointment):
+        if len(existing_appointment) > 0:
             abort(400, "An appointment with the same date already exists.")
 
         appointment = Appointment(**request)
@@ -39,10 +60,172 @@ class AppointmentsAPI(Resource):
             abort(500, "Failed to create the appointment. Please try again later.")
 
 
+@appointments_ns.route("/appointment/list")
+class AppointmentsListAllApi(Resource):
+    method_decorators = [jwt_required()]
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    @appointments_ns.expect(get_appointments_request, validate=True)
+    @appointments_ns.marshal_list_with(appointment_response)
+    def post(self):
+        request = appointments_ns.payload
+
+        start_date = datetime.fromisoformat(request["start_date"])
+        end_date = datetime.fromisoformat(request["end_date"])
+        filter = and_(
+            Appointment.start_date >= start_date, Appointment.end_date <= end_date
+        )
+
+        status = request.get("status")
+        dentist_id = request.get("dentist_id")
+        patient_id = request.get("patient_id")
+
+        if status:
+            status_filter = Appointment.status == AppointmentStatus[status]
+            filter = and_(filter, status_filter)
+
+        if dentist_id:
+            dentist_filter = Appointment.dentist_id == dentist_id
+            filter = and_(filter, dentist_filter)
+
+        if patient_id:
+            patient_filter = Appointment.patient_id == patient_id
+            filter = and_(filter, patient_filter)
+
+        return Appointment.query.filter(filter).all()
+
 
 @appointments_ns.route("/appointment/<int:id>")
 class AppointmentsListApi(Resource):
+    method_decorators = [jwt_required()]
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @appointments_ns.marshal_with(appointment_response)
     def get(self, id):
         appointment = Appointment.query.get_or_404(id)
         return appointment
+
+
+@appointments_ns.route("/appointment/<int:id>/finish")
+class AppointmentsFinish(Resource):
+    method_decorators = [jwt_required()]
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    @appointments_ns.expect(finish_appointment_request, validate=True)
+    def post(self, id):
+        appointment = Appointment.query.get_or_404(id)
+        request = appointments_ns.payload
+        services_request = request["services"]
+        supplies_request = request["supplies"]
+        sell = Sell(patient_id=appointment.patient_id, appointment_id=id)
+
+        services = []
+        supplies = []
+
+        for service in services_request:
+            service_row = Service.query.get_or_404(service["service_id"])
+            quantity = service["quantity"]
+            missing = service_row.can_produce(quantity)
+            if len(missing) > 0:
+                abort(
+                    400,
+                    {
+                        "message": "Failed to finish the appointment, some services cannot be given due to a lack fo supplies",
+                        "missing": missing,
+                    },
+                )
+
+            # Subtracting from the inventory
+            for supply in service_row.supplies:
+                spent_quantity = supply.quantity * quantity
+                buys = supply.supply.inventory
+                index = 0
+                remaining = spent_quantity
+                while True:
+                    buy = buys[index]
+                    difference = buy.available_use_quantity - remaining
+                    if difference >= 0:
+                        buy.available_use_quantity = difference
+                        # db.session.commit()
+                        break
+                    remaining = abs(difference)
+                    difference = 0
+                    buy.available_use_quantity = 0
+                    # db.session.commit()
+                    index += 1
+
+            total = service_row.price * quantity
+            vat = total * 0.16
+            subtotal = total * 0.84
+            new_service = SellServices(
+                service_id=service_row.id,
+                quantity=quantity,
+                price=service_row.price,
+                subtotal=subtotal,
+                vat=vat,
+                total=total,
+            )
+            services.append(new_service)
+
+        for supply in supplies_request:
+            supply_row = Supply.query.get_or_404(supply["supply_id"])
+            quantity = supply["quantity"]
+            if quantity > supply_row.stock_in_use_unit:
+                abort(
+                    400,
+                    f"Failed to finish the appointment. You are trying to sell a supply with not enough stock {supply_row.stock_in_use_unit}",
+                )
+
+            # Subtracting from the inventory
+            spent_quantity = quantity
+            buys = supply_row.inventory
+            index = 0
+            remaining = spent_quantity
+            while True:
+                buy = buys[index]
+                difference = buy.available_use_quantity - remaining
+                if difference >= 0:
+                    buy.available_use_quantity = difference
+                    # db.session.commit()
+                    break
+                remaining = abs(difference)
+                difference = 0
+                buy.available_use_quantity = 0
+                # db.session.commit()
+                index += 1
+
+            total = supply_row.price * quantity
+            vat = total * 0.16
+            subtotal = total * 0.84
+            new_supply = SellSupplies(
+                supply_id=supply_row.id,
+                quantity=quantity,
+                price=supply_row.price,
+                subtotal=subtotal,
+                vat=vat,
+                total=total,
+            )
+            supplies.append(new_supply)
+
+        sell.services_query = services
+        sell.supplies_query = supplies
+
+        sell.total = sum([service.total for service in services]) + sum(
+            supply.total for supply in supplies
+        )
+        sell.subtotal = total * 0.84
+        sell.vat = total * 0.16
+
+        try:
+            db.session.add(sell)
+            db.session.commit()
+            appointment.status = AppointmentStatus.ATENDIDA
+            db.session.commit()
+            return {}, 204
+        except Exception as ex:
+            db.session.rollback()
+            print(f"Error while creating the sell {str(ex)}")
+            abort(500, "Failed to finish the appointment. Try again later")

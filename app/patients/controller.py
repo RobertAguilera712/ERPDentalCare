@@ -1,19 +1,31 @@
 from flask_restx import Resource, Namespace, abort
-from app.models import Person, User, Patient, Allergy, RowStatus
-from app.extensions import db
+from app.models import Person, User, Patient, Allergy, RowStatus, UserRole
+from app.extensions import db, bcrypt, authorizations, role_required
+from app.appointments.responses import appointment_response
+from app.sells.responses import sell_response
 from .responses import patient_response
 from .requests import patient_request
+from flask_jwt_extended import (
+    jwt_required,
+    current_user,
+)
 
 
-patients_ns = Namespace("api")
+patients_ns = Namespace("api", authorizations=authorizations)
 
 
 @patients_ns.route("/patients")
 class PatientsListAPI(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @patients_ns.marshal_list_with(patient_response)
     def get(self):
         return Patient.query.filter(Patient.status == RowStatus.ACTIVO).all()
 
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @patients_ns.expect(patient_request, validate=True)
     @patients_ns.marshal_with(patient_response)
     def post(self):
@@ -41,7 +53,14 @@ class PatientsListAPI(Resource):
         if existing_user:
             abort(400, "A user with the same email already exists.")
 
-        user = User(**user_request)
+        user = User()
+        user.email = user_request["email"]
+        user.image = user_request["image"]
+        hashed_password = bcrypt.generate_password_hash(
+            user_request["password"]
+        ).decode("utf-8")
+        user.password = hashed_password
+        user.role = UserRole.PATIENT
 
         patient = Patient(user=user, person=person)
         patient.allergies.extend(selected_allergies)
@@ -58,11 +77,17 @@ class PatientsListAPI(Resource):
 
 @patients_ns.route("/patients/<int:id>")
 class PatientsApi(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @patients_ns.marshal_with(patient_response)
     def get(self, id):
         patient = Patient.query.get_or_404(id)
         return patient
 
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @patients_ns.expect(patient_request, validate=True)
     @patients_ns.marshal_with(patient_response)
     def put(self, id):
@@ -74,7 +99,6 @@ class PatientsApi(Resource):
         for key, value in person_dict.items():
             setattr(patient.person, key, value)
 
-        
         same_email = patient.user.email == user_dict["email"]
 
         existing_user = (
@@ -110,8 +134,38 @@ class PatientsApi(Resource):
         db.session.commit()
         return patient, 201
 
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     def delete(self, id):
         patient = Patient.query.get_or_404(id)
         patient.status = 0
         db.session.commit()
         return {}, 204
+
+
+@patients_ns.route("/patients/my/appointments")
+class PatientMyAppointments(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.PATIENT])
+    @patients_ns.marshal_with(appointment_response)
+    def get(self):
+        patient = Patient.query.filter(Patient.user == current_user).first()
+        if not patient:
+            abort(404, "The dentist does not exists")
+        return patient.appointments
+
+
+@patients_ns.route("/patients/my/sells")
+class PatientMySells(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.PATIENT])
+    @patients_ns.marshal_with(sell_response)
+    def get(self):
+        patient = Patient.query.filter(Patient.user == current_user).first()
+        if not patient:
+            abort(404, "The dentist does not exists")
+        return patient.sells

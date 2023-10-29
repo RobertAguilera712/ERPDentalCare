@@ -1,19 +1,26 @@
 from flask_restx import Resource, Namespace
-from app.models import Service, ServiceSupplies, RowStatus
-from app.extensions import db
-from .responses import service_response
+from app.models import Service, ServiceSupplies, RowStatus, UserRole
+from app.extensions import db, authorizations, role_required
+from .responses import service_response, service_sells_response
 from .requests import service_request
+from flask_jwt_extended import jwt_required
 
 
-services_ns = Namespace("api")
+services_ns = Namespace("api", authorizations=authorizations)
 
 
 @services_ns.route("/services")
 class ServicesListAPI(Resource):
+    method_decorators = [jwt_required()]
+
+    @services_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @services_ns.marshal_list_with(service_response)
     def get(self):
         return Service.query.filter(Service.status == RowStatus.ACTIVO).all()
 
+    @services_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def post(self):
@@ -37,13 +44,31 @@ class ServicesListAPI(Resource):
         return service, 201
 
 
+@services_ns.route("/services/<int:id>/sells")
+class SupplySellsListApi(Resource):
+    method_decorators = [jwt_required()]
+
+    @services_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    @services_ns.marshal_list_with(service_sells_response)
+    def get(self, id):
+        service = Service.query.get_or_404(id)
+        return service.sells
+
+
 @services_ns.route("/services/<int:id>")
 class ServicesApi(Resource):
+    method_decorators = [jwt_required()]
+
+    @services_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @services_ns.marshal_with(service_response)
     def get(self, id):
         service = Service.query.get_or_404(id)
         return service
 
+    @services_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def put(self, id):
@@ -73,6 +98,8 @@ class ServicesApi(Resource):
         db.session.commit()
         return service, 201
 
+    @services_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     def delete(self, id):
         service = Service.query.get_or_404(id)
         service.status = 0

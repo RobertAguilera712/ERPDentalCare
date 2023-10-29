@@ -1,20 +1,31 @@
 from flask_restx import Resource, Namespace, abort
-from app.models import Person, User, Dentist, Weekday, Diploma, RowStatus
-from app.extensions import db
+from app.models import Person, User, Dentist, Weekday, Diploma, RowStatus, UserRole
+from app.extensions import db, authorizations, bcrypt, role_required
+from app.appointments.responses import appointment_response
 from .responses import dentist_response
 from .requests import dentist_request
+from flask_jwt_extended import (
+    jwt_required,
+    current_user,
+)
 import datetime
 
 
-dentists_ns = Namespace("api")
+dentists_ns = Namespace("api", authorizations=authorizations)
 
 
 @dentists_ns.route("/dentists")
 class DentistListAPI(Resource):
+    method_decorators = [jwt_required()]
+
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @dentists_ns.marshal_list_with(dentist_response)
     def get(self):
         return Dentist.query.filter(Dentist.status == RowStatus.ACTIVO).all()
 
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @dentists_ns.expect(dentist_request, validate=True)
     @dentists_ns.marshal_with(dentist_response)
     def post(self):
@@ -26,7 +37,14 @@ class DentistListAPI(Resource):
         if existing_user:
             abort(400, "A user with the same email already exists.")
 
-        user = User(**user_request)
+        user = User()
+        user.email = user_request["email"]
+        user.image = user_request["image"]
+        hashed_password = bcrypt.generate_password_hash(
+            user_request["password"]
+        ).decode("utf-8")
+        user.password = hashed_password
+        user.role = UserRole.DENTIST
 
         dentist = Dentist(user=user, person=person)
         dentist.professional_license = dentists_ns.payload["professional_license"]
@@ -64,13 +82,33 @@ class DentistListAPI(Resource):
             abort(500, "Failed to create the dentist. Please try again later.")
 
 
+@dentists_ns.route("/dentists/my/appointments")
+class DentistMyAppointment(Resource):
+    method_decorators = [jwt_required()]
+
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.DENTIST])
+    @dentists_ns.marshal_with(appointment_response)
+    def get(self):
+        dentist = Dentist.query.filter(Dentist.user == current_user).first()
+        if not dentist:
+            abort(404, "The dentist does not exists")
+        return dentist.appointments
+
+
 @dentists_ns.route("/dentists/<int:id>")
 class DentistApi(Resource):
+    method_decorators = [jwt_required()]
+
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @dentists_ns.marshal_with(dentist_response)
     def get(self, id):
         dentist = Dentist.query.get_or_404(id)
         return dentist
 
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @dentists_ns.expect(dentist_request, validate=True)
     @dentists_ns.marshal_with(dentist_response)
     def put(self, id):
@@ -130,6 +168,8 @@ class DentistApi(Resource):
             print(f"Error updating dentist: {str(e)}")
             abort(500, "Failed to update the dentist. Please try again later.")
 
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     def delete(self, id):
         dentist = Dentist.query.get_or_404(id)
         dentist.status = 0

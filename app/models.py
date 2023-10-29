@@ -1,17 +1,39 @@
 from .extensions import db
-from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.ext.hybrid import hybrid_property, hybrid_method
+from sqlalchemy import or_
 from datetime import datetime
 from datetime import date
 from enum import Enum
+import math
+
+
+class UserRole(Enum):
+    ADMIN = 0
+    DENTIST = 1
+    PATIENT = 2
+
 
 class RowStatus(Enum):
     INACTIVO = 0
     ACTIVO = 1
 
+
 class AppointmentStatus(Enum):
     CANCELADA = 0
     AGENDADA = 1
     ATENDIDA = 2
+
+
+class SellStatus(Enum):
+    CANCELADA = 0
+    CREADA = 1
+    PAGO_PARCIAL = 2
+    PAGO_TOTAL = 3
+
+
+class PaymentStatus(Enum):
+    CANCELADO = 0
+    PAGADO = 0
 
 
 class Person(db.Model):
@@ -36,8 +58,9 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     email = db.Column(db.String(100), nullable=False, unique=True)
     image = db.Column(db.Text, nullable=True)
-    password = db.Column(db.String(60), nullable=False)
+    password = db.Column(db.String(255), nullable=False)
     status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
+    role = db.Column(db.Enum(UserRole), nullable=False)
 
 
 patient_allergies = db.Table(
@@ -67,7 +90,7 @@ class Patient(db.Model):
 
     @hybrid_property
     def sells(self):
-        return self.sells.filter(Sell.status == RowStatus.ACTIVO).all()
+        return self.sells_query.all()
 
     @hybrid_property
     def payments(self):
@@ -167,7 +190,7 @@ class Supply(db.Model):
 
     @hybrid_property
     def sells(self):
-        return self.sells_query.filter(Sell.status == RowStatus.ACTIVO).all()
+        return self.sells_query.all()
 
     @hybrid_property
     def buy_records(self):
@@ -177,20 +200,35 @@ class Supply(db.Model):
     def inventory(self):
         return (
             self.buys_query.filter(SupplyBuys.available_use_quantity > 0)
-            .filter(SupplyBuys.expiration_date > date.today())
+            .filter(
+                or_(
+                    SupplyBuys.expiration_date > date.today(),
+                    SupplyBuys.expiration_date.is_(None),
+                )
+            )
             .order_by(SupplyBuys.expiration_date)
             .all()
         )
 
     @hybrid_property
     def stock(self):
-        buys = self.buys_query.filter(SupplyBuys.expiration_date > date.today()).all()
+        buys = self.buys_query.filter(
+            or_(
+                SupplyBuys.expiration_date > date.today(),
+                SupplyBuys.expiration_date.is_(None),
+            )
+        ).all()
         stock = sum([i.available_quantity for i in buys])
         return stock
 
     @hybrid_property
     def stock_in_use_unit(self):
-        buys = self.buys_query.filter(SupplyBuys.expiration_date > date.today()).all()
+        buys = self.buys_query.filter(
+            or_(
+                SupplyBuys.expiration_date > date.today(),
+                SupplyBuys.expiration_date.is_(None),
+            )
+        ).all()
         stock = sum([i.available_use_quantity for i in buys])
         return stock
 
@@ -198,7 +236,7 @@ class Supply(db.Model):
 class SupplyBuys(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     buy_date = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    expiration_date = db.Column(db.DateTime, nullable=False)
+    expiration_date = db.Column(db.DateTime, nullable=True)
     quantity = db.Column(db.Integer, nullable=False)
     available_use_quantity = db.Column(db.Double, nullable=False)
     unit_cost = db.Column(db.Double, nullable=False)
@@ -230,13 +268,33 @@ class Service(db.Model):
 
     @hybrid_property
     def sells(self):
-        return self.sells_query.filter(Sell.status == RowStatus.ACTIVO).all()
+        return self.sells_query.all()
 
     @hybrid_property
     def cost(self):
-        return sum(
-            [supply.cost for supply in self.supplies.filter(Supply.status == RowStatus.ACTIVO).all()]
-        )
+        return sum([s.supply.cost * s.quantity for s in self.supplies])
+
+    @hybrid_method
+    def can_produce(self, quantity: int) -> list:
+        missing = []
+        for supply in self.supplies:
+            quantity_needed = supply.quantity * quantity
+            quantity_in_stock = supply.supply.stock_in_use_unit
+            missing_quantity = quantity_needed - quantity_in_stock
+            buy_missing_quantity = math.ceil(
+                missing_quantity / supply.supply.equivalence
+            )
+            if missing_quantity > 0:
+                missing.append(
+                    {
+                        "name": supply.supply.name,
+                        "missing": missing_quantity,
+                        "buy_missing": buy_missing_quantity,
+                        "buy_unit": supply.supply.buy_unit,
+                        "use_unit": supply.supply.use_unit,
+                    }
+                )
+        return missing
 
 
 class ServiceSupplies(db.Model):
@@ -284,8 +342,9 @@ class Sell(db.Model):
     total = db.Column(db.Double, nullable=False)
     services_query = db.relationship("SellServices", lazy="dynamic", backref="Sell")
     supplies_query = db.relationship("SellSupplies", lazy="dynamic", backref="Sell")
-    payments_query = db.relationship("Payment", lazy="dynamic", backref="Sell")
-    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
+    # payment_method_id = db.Column(db.Integer, db.ForeignKey("payment_method.id"))
+    # payment_method = db.relationship("PaymentMethod", lazy=True, uselist=False)
+    status = db.Column(db.Enum(SellStatus), nullable=False, default=SellStatus.CREADA)
 
     @hybrid_property
     def services(self):
@@ -294,18 +353,6 @@ class Sell(db.Model):
     @hybrid_property
     def supplies(self):
         return self.supplies_query.filter(SellSupplies.status == RowStatus.ACTIVO).all()
-
-    @hybrid_property
-    def payments(self):
-        return self.payments_query.filter(Payment.status == RowStatus.ACTIVO).all()
-
-    @hybrid_property
-    def balance(self):
-        return self.total - sum([payment.total for payment in self.payments])
-
-    @hybrid_property
-    def paid(self):
-        return self.balance == 0
 
 
 class SellServices(db.Model):
@@ -336,9 +383,9 @@ class Payment(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     sell_id = db.Column(db.Integer, db.ForeignKey("sell.id"))
     patient_id = db.Column(db.Integer, db.ForeignKey("patient.id"))
-    payment_method = db.relationship("PaymentMethod", lazy=True, uselist=False)
-    payment_method_id = db.Column(db.Integer, db.ForeignKey("payment_method.id"))
     subtotal = db.Column(db.Double, nullable=False)
     vat = db.Column(db.Double, nullable=False)
     total = db.Column(db.Double, nullable=False)
-    status = db.Column(db.Enum(RowStatus), nullable=False, default=RowStatus.ACTIVO)
+    status = db.Column(
+        db.Enum(PaymentStatus), nullable=False, default=PaymentStatus.PAGADO
+    )
