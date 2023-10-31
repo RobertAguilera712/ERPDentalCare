@@ -15,7 +15,7 @@ class Login(Resource):
         request = login_ns.payload
         user = User.query.filter(User.email == request['email']).first()
         if not user:
-            return {"message": "The user does not exists", "token": None}, 401
+            return {"message": "The user does not exists", "token": None, "role": None}, 401
         if not bcrypt.check_password_hash(user.password, request['password']):
-            return {"message": "The password is incorrect", "token": None}, 401
-        return {"message": "User logged successfully", "token": create_access_token(user)}, 401
+            return {"message": "The password is incorrect", "token": None, "role": user.role.name}, 401
+        return {"message": "User logged successfully", "token": create_access_token(user), "role": user.role.name}, 401
