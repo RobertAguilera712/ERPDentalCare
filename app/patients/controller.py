@@ -138,7 +138,7 @@ class PatientsApi(Resource):
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         patient = Patient.query.get_or_404(id)
-        patient.status = 0
+        patient.status = RowStatus.INACTIVO
         db.session.commit()
         return {}, 204
 

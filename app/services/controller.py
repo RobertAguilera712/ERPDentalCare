@@ -102,6 +102,6 @@ class ServicesApi(Resource):
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         service = Service.query.get_or_404(id)
-        service.status = 0
+        service.status = RowStatus.INACTIVO
         db.session.commit()
         return {}, 204

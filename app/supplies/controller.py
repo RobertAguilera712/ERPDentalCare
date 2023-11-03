@@ -71,7 +71,7 @@ class SupplyApi(Resource):
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         supply = Supply.query.get_or_404(id)
-        supply.status = 0
+        supply.status = RowStatus.INACTIVO
         db.session.commit()
         return {}, 204
 
