@@ -4,7 +4,7 @@ from app.extensions import db, bcrypt, authorizations, role_required
 from app.appointments.responses import appointment_response
 from app.sells.responses import sell_response
 from .responses import patient_response
-from .requests import patient_request
+from .requests import patient_request, edit_patient_request
 from flask_jwt_extended import (
     jwt_required,
     current_user,
@@ -88,7 +88,7 @@ class PatientsApi(Resource):
 
     @patients_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
-    @patients_ns.expect(patient_request, validate=True)
+    @patients_ns.expect(edit_patient_request, validate=True)
     @patients_ns.marshal_with(patient_response)
     def put(self, id):
         patient = Patient.query.get_or_404(id)

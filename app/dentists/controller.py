@@ -3,7 +3,7 @@ from app.models import Person, User, Dentist, Weekday, Diploma, RowStatus, UserR
 from app.extensions import db, authorizations, bcrypt, role_required
 from app.appointments.responses import appointment_response
 from .responses import dentist_response
-from .requests import dentist_request
+from .requests import dentist_request, edit_dentist_request
 from flask_jwt_extended import (
     jwt_required,
     current_user,
@@ -109,7 +109,7 @@ class DentistApi(Resource):
 
     @dentists_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
-    @dentists_ns.expect(dentist_request, validate=True)
+    @dentists_ns.expect(edit_dentist_request, validate=True)
     @dentists_ns.marshal_with(dentist_response)
     def put(self, id):
         dentist = Dentist.query.get_or_404(id)

@@ -48,3 +48,13 @@ user_request = api.model(
         ),
     },
 )
+
+edit_user_request = api.model(
+    "user_request",
+    {
+        "email": fields.String(
+            required=True, description="Email address of the user", max_length=100
+        ),
+        "image": fields.String(description="User image as base64 text"),
+    },
+)
