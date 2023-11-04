@@ -50,18 +50,18 @@ class DentistListAPI(Resource):
         dentist.professional_license = dentists_ns.payload["professional_license"]
         dentist.hired_at = dentists_ns.payload["hired_at"]
         dentist.position = dentists_ns.payload["position"]
-        selected_weekdays = Weekday.query.filter(
-            Weekday.id.in_(dentists_ns.payload["weekdays"])
-        ).all()
-        dentist.weekdays.extend(selected_weekdays)
+        # selected_weekdays = Weekday.query.filter(
+        #     Weekday.id.in_(dentists_ns.payload["weekdays"])
+        # ).all()
+        # dentist.weekdays.extend(selected_weekdays)
 
-        start_hour = dentists_ns.payload["start_hour"]
-        start_minute = dentists_ns.payload["start_minute"]
-        end_hour = dentists_ns.payload["end_hour"]
-        end_minute = dentists_ns.payload["end_minute"]
-        dentist.start_time = datetime.time(start_hour, start_minute, 0)
-        dentist.end_time = datetime.time(end_hour, end_minute, 0)
-        dentist.frequency_id = dentists_ns.payload["frequency_id"]
+        # start_hour = dentists_ns.payload["start_hour"]
+        # start_minute = dentists_ns.payload["start_minute"]
+        # end_hour = dentists_ns.payload["end_hour"]
+        # end_minute = dentists_ns.payload["end_minute"]
+        dentist.start_time = datetime.time(12, 0, 0)
+        dentist.end_time = datetime.time(12, 0, 0)
+        dentist.frequency_id = 1
 
         diplomas = []
         for diploma_request in dentists_ns.payload["diplomas"]:
@@ -136,19 +136,19 @@ class DentistApi(Resource):
         dentist.professional_license = dentists_ns.payload["professional_license"]
         dentist.hired_at = dentists_ns.payload["hired_at"]
         dentist.position = dentists_ns.payload["position"]
-        selected_weekdays = Weekday.query.filter(
-            Weekday.id.in_(dentists_ns.payload["weekdays"])
-        ).all()
-        dentist.weekdays = []
-        dentist.weekdays.extend(selected_weekdays)
+        # selected_weekdays = Weekday.query.filter(
+        #     Weekday.id.in_(dentists_ns.payload["weekdays"])
+        # ).all()
+        # dentist.weekdays = []
+        # dentist.weekdays.extend(selected_weekdays)
 
-        start_hour = dentists_ns.payload["start_hour"]
-        start_minute = dentists_ns.payload["start_minute"]
-        end_hour = dentists_ns.payload["end_hour"]
-        end_minute = dentists_ns.payload["end_minute"]
-        dentist.start_time = datetime.time(start_hour, start_minute, 0)
-        dentist.end_time = datetime.time(end_hour, end_minute, 0)
-        dentist.frequency_id = dentists_ns.payload["frequency_id"]
+        # start_hour = dentists_ns.payload["start_hour"]
+        # start_minute = dentists_ns.payload["start_minute"]
+        # end_hour = dentists_ns.payload["end_hour"]
+        # end_minute = dentists_ns.payload["end_minute"]
+        # dentist.start_time = datetime.time(start_hour, start_minute, 0)
+        # dentist.end_time = datetime.time(end_hour, end_minute, 0)
+        # dentist.frequency_id = dentists_ns.payload["frequency_id"]
 
         dentist.diplomas = []
         diplomas = []

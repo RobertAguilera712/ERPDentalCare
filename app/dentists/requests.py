@@ -32,25 +32,25 @@ dentist_request = api.model(
             description="The position that this dentist has in the dental office",
             max_length=60,
         ),
-        "weekdays": fields.List(fields.Integer, description="The id's of the days when the dentist work", required=True),
-        "start_hour": fields.Integer(
-            required=True, description="The hour in which the dentist begins to work"
-        ),
-        "start_minute": fields.Integer(
-            required=True,
-            description="The minute of the start hour in which the dentist begins to work",
-        ),
-        "end_hour": fields.Integer(
-            required=True, description="The hour in which the dentist ends his work"
-        ),
-        "end_minute": fields.Integer(
-            required=True,
-            description="The minute of the end hour in which the dentist ends his work",
-        ),
-        "frequency_id": fields.Integer(
-            required=True,
-            description="The unique identifier for the frequency in which the dentist goes to the consult",
-        ),
+        # "weekdays": fields.List(fields.Integer, description="The id's of the days when the dentist work", required=True),
+        # "start_hour": fields.Integer(
+        #     required=True, description="The hour in which the dentist begins to work"
+        # ),
+        # "start_minute": fields.Integer(
+        #     required=True,
+        #     description="The minute of the start hour in which the dentist begins to work",
+        # ),
+        # "end_hour": fields.Integer(
+        #     required=True, description="The hour in which the dentist ends his work"
+        # ),
+        # "end_minute": fields.Integer(
+        #     required=True,
+        #     description="The minute of the end hour in which the dentist ends his work",
+        # ),
+        # "frequency_id": fields.Integer(
+        #     required=True,
+        #     description="The unique identifier for the frequency in which the dentist goes to the consult",
+        # ),
         "diplomas": fields.List(fields.Nested(diploma_request)),
     },
 )
