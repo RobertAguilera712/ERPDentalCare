@@ -24,7 +24,7 @@ def role_required(allowed_roles):
                 abort(404, "The user does not exists")
 
             if current_user.role not in allowed_roles:
-                abort(403, "You do not have the permissions to access to this route")
+                abort(403, f"{current_user.email} You do not have the permissions to access to this route")
 
             return fn(*args, **kwargs)
 
