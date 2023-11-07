@@ -86,6 +86,12 @@ class AppointmentsListAllApi(Resource):
 
     @appointments_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
+    @appointments_ns.marshal_list_with(appointment_response)
+    def get(self):
+        return Appointment.query.filter(Appointment.status != AppointmentStatus.CANCELADA).all()
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     @appointments_ns.expect(get_appointments_request, validate=True)
     @appointments_ns.marshal_list_with(appointment_response)
     def post(self):
