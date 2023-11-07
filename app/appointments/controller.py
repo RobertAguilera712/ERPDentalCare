@@ -107,6 +107,19 @@ class AppointmentsListApi(Resource):
         appointment = Appointment.query.get_or_404(id)
         return appointment
 
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    def delete(self, id):
+        appointment = Appointment.query.get_or_404(id)
+        appointment.status = AppointmentStatus.CANCELADA
+        try:
+            db.session.commit()
+            return {}, 204
+        except Exception as ex:
+            db.session.rollback()
+            print(f"Error while updating the status of the appointment {str(ex)}")
+            abort(500, "Failed to cancel the appointment. Try again later")
+
 
 @appointments_ns.route("/appointment/<int:id>/finish")
 class AppointmentsFinish(Resource):
