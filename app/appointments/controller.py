@@ -141,6 +141,60 @@ class AppointmentsListApi(Resource):
 
     @appointments_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
+    @appointments_ns.expect(create_appointment_request, validate=True)
+    @appointments_ns.marshal_with(appointment_response)
+    def put(self, id):
+        appointment = Appointment.query.get_or_404(id)
+
+        request = appointments_ns.payload
+
+        start_date = datetime.fromisoformat(request["start_date"])
+        end_date = datetime.fromisoformat(request["end_date"])
+
+        existing_appointment = Appointment.query.filter(
+            (
+                and_(
+                    Appointment.id != id,
+                    Appointment.dentist_id == request["dentist_id"],
+                    or_(
+                        Appointment.start_date.between(start_date, end_date),
+                        Appointment.end_date.between(start_date, end_date),
+                    ),
+                )
+            )
+        ).all()
+
+        if len(existing_appointment) > 0:
+            abort(400, "An appointment with the same date already exists.")
+
+        dentist = Dentist.query.filter(
+            Dentist.id == request["dentist_id"], Dentist.status == RowStatus.ACTIVO
+        ).first()
+        if not dentist:
+            abort(400, "The specified dentist does not exist")
+
+        patient = Patient.query.filter(
+            Patient.id == request["patient_id"], Patient.status == RowStatus.ACTIVO
+        ).first()
+        if not patient:
+            abort(400, "The specified patient does not exist")
+
+        appointment.start_date = start_date
+        appointment.end_date = end_date
+        appointment.dentist_id = dentist.id
+        appointment.patient_id = patient.id
+
+        try:
+            db.session.commit()
+            return appointment, 201
+        except Exception as e:
+            # Handle other exceptions, log the error, and return a 500 Internal Server Error response
+            db.session.rollback()
+            print(f"Error updating appointment: {str(e)}")
+            abort(500, "Failed to update the appointment. Please try again later.")
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
     def delete(self, id):
         appointment = Appointment.query.get_or_404(id)
         appointment.status = AppointmentStatus.CANCELADA
