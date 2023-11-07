@@ -55,11 +55,15 @@ class AppointmentsAPI(Resource):
         if len(existing_appointment) > 0:
             abort(400, "An appointment with the same date already exists.")
 
-        dentist = Dentist.query.filter(Dentist.id == request['dentist_id'], Dentist.status == RowStatus.ACTIVO).first()
+        dentist = Dentist.query.filter(
+            Dentist.id == request["dentist_id"], Dentist.status == RowStatus.ACTIVO
+        ).first()
         if not dentist:
             abort(400, "The specified dentist does not exist")
 
-        patient = Patient.query.filter(Patient.id == request['patient_id'], Patient.status == RowStatus.ACTIVO).first()
+        patient = Patient.query.filter(
+            Patient.id == request["patient_id"], Patient.status == RowStatus.ACTIVO
+        ).first()
         if not patient:
             abort(400, "The specified patient does not exist")
 
@@ -88,7 +92,9 @@ class AppointmentsListAllApi(Resource):
     @role_required([UserRole.ADMIN])
     @appointments_ns.marshal_list_with(appointment_response)
     def get(self):
-        return Appointment.query.filter(Appointment.status != AppointmentStatus.CANCELADA).all()
+        return Appointment.query.filter(
+            Appointment.status != AppointmentStatus.CANCELADA
+        ).all()
 
     @appointments_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])

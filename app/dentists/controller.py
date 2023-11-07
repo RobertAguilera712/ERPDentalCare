@@ -95,6 +95,7 @@ class DentistMyAppointment(Resource):
             abort(404, "The dentist does not exists")
         return dentist.appointments
 
+
 @dentists_ns.route("/dentists/me")
 class DentistMe(Resource):
     method_decorators = [jwt_required()]
