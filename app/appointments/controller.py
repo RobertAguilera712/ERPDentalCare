@@ -1,12 +1,15 @@
 from flask_restx import Resource, Namespace, abort
 from app.models import (
     Appointment,
+    Dentist,
+    Patient,
     AppointmentStatus,
     Sell,
     SellServices,
     SellSupplies,
     Service,
     Supply,
+    RowStatus,
     UserRole,
 )
 from app.extensions import db, authorizations, role_required
@@ -39,15 +42,32 @@ class AppointmentsAPI(Resource):
 
         existing_appointment = Appointment.query.filter(
             (
-                Appointment.start_date.between(start_date, end_date)
-                | Appointment.end_date.between(start_date, end_date)
+                and_(
+                    Appointment.dentist_id == request["dentist_id"],
+                    or_(
+                        Appointment.start_date.between(start_date, end_date),
+                        Appointment.end_date.between(start_date, end_date),
+                    ),
+                )
             )
         ).all()
 
         if len(existing_appointment) > 0:
             abort(400, "An appointment with the same date already exists.")
 
-        appointment = Appointment(**request)
+        dentist = Dentist.query.filter(Dentist.id == request['dentist_id'], Dentist.status == RowStatus.ACTIVO).first()
+        if not dentist:
+            abort(400, "The specified dentist does not exist")
+
+        patient = Patient.query.filter(Patient.id == request['patient_id'], Patient.status == RowStatus.ACTIVO).first()
+        if not patient:
+            abort(400, "The specified patient does not exist")
+
+        appointment = Appointment()
+        appointment.start_date = start_date
+        appointment.end_date = end_date
+        appointment.dentist_id = dentist.id
+        appointment.patient_id = patient.id
 
         try:
             db.session.add(appointment)
