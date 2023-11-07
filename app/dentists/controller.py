@@ -95,6 +95,19 @@ class DentistMyAppointment(Resource):
             abort(404, "The dentist does not exists")
         return dentist.appointments
 
+@dentists_ns.route("/dentists/me")
+class DentistMe(Resource):
+    method_decorators = [jwt_required()]
+
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.DENTIST])
+    @dentists_ns.marshal_with(dentist_response)
+    def get(self):
+        dentist = Dentist.query.filter(Dentist.user == current_user).first()
+        if not dentist:
+            abort(404, "The dentist does not exists")
+        return dentist
+
 
 @dentists_ns.route("/dentists/<int:id>")
 class DentistApi(Resource):

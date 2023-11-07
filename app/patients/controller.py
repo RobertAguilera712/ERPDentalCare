@@ -167,5 +167,19 @@ class PatientMySells(Resource):
     def get(self):
         patient = Patient.query.filter(Patient.user == current_user).first()
         if not patient:
-            abort(404, "The dentist does not exists")
+            abort(404, "The patient does not exists")
         return patient.sells
+
+
+@patients_ns.route("/patients/me")
+class PatientMySells(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.PATIENT])
+    @patients_ns.marshal_with(patient_response)
+    def get(self):
+        patient = Patient.query.filter(Patient.user == current_user).first()
+        if not patient:
+            abort(404, "The patient does not exists")
+        return patient
