@@ -109,6 +109,54 @@ class DentistMe(Resource):
             abort(404, "The dentist does not exists")
         return dentist
 
+    @dentists_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.DENTIST])
+    @dentists_ns.expect(edit_dentist_request, validate=True)
+    @dentists_ns.marshal_with(dentist_response)
+    def put(self):
+        dentist = Dentist.query.filter(Dentist.user == current_user).first()
+
+        person_dict = dentists_ns.payload["person"]
+        user_dict = dentists_ns.payload["user"]
+
+        for key, value in person_dict.items():
+            setattr(dentist.person, key, value)
+
+        same_email = dentist.user.email == user_dict["email"]
+
+        existing_user = (
+            False
+            if same_email
+            else User.query.filter(User.email == user_dict["email"]).first()
+        )
+        if existing_user:
+            abort(400, "A user with the same email already exists.")
+
+        for key, value in user_dict.items():
+            setattr(dentist.user, key, value)
+
+        dentist.professional_license = dentists_ns.payload["professional_license"]
+        dentist.hired_at = dentists_ns.payload["hired_at"]
+        dentist.position = dentists_ns.payload["position"]
+
+        dentist.diplomas = []
+        diplomas = []
+        for diploma_request in dentists_ns.payload["diplomas"]:
+            diploma = Diploma(
+                name=diploma_request["name"], university=diploma_request["university"]
+            )
+            diplomas.append(diploma)
+
+        dentist.diplomas.extend(diplomas)
+
+        try:
+            db.session.commit()
+            return dentist, 201
+        except Exception as e:
+            db.session.rollback()
+            print(f"Error updating dentist: {str(e)}")
+            abort(500, "Failed to update the dentist. Please try again later.")
+
 
 @dentists_ns.route("/dentists/<int:id>")
 class DentistApi(Resource):
@@ -150,19 +198,6 @@ class DentistApi(Resource):
         dentist.professional_license = dentists_ns.payload["professional_license"]
         dentist.hired_at = dentists_ns.payload["hired_at"]
         dentist.position = dentists_ns.payload["position"]
-        # selected_weekdays = Weekday.query.filter(
-        #     Weekday.id.in_(dentists_ns.payload["weekdays"])
-        # ).all()
-        # dentist.weekdays = []
-        # dentist.weekdays.extend(selected_weekdays)
-
-        # start_hour = dentists_ns.payload["start_hour"]
-        # start_minute = dentists_ns.payload["start_minute"]
-        # end_hour = dentists_ns.payload["end_hour"]
-        # end_minute = dentists_ns.payload["end_minute"]
-        # dentist.start_time = datetime.time(start_hour, start_minute, 0)
-        # dentist.end_time = datetime.time(end_hour, end_minute, 0)
-        # dentist.frequency_id = dentists_ns.payload["frequency_id"]
 
         dentist.diplomas = []
         diplomas = []

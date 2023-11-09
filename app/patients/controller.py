@@ -183,3 +183,51 @@ class PatientMySells(Resource):
         if not patient:
             abort(404, "The patient does not exists")
         return patient
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.PATIENT])
+    @patients_ns.marshal_with(patient_response)
+    @patients_ns.expect(edit_patient_request, validate=True)
+    def put(self):
+        patient = Patient.query.filter(Patient.user == current_user).first()
+
+        person_dict = patients_ns.payload["person"]
+        user_dict = patients_ns.payload["user"]
+
+        for key, value in person_dict.items():
+            setattr(patient.person, key, value)
+
+        same_email = patient.user.email == user_dict["email"]
+
+        existing_user = (
+            False
+            if same_email
+            else User.query.filter(User.email == user_dict["email"]).first()
+        )
+        if existing_user:
+            abort(400, "A user with the same email already exists.")
+
+        for key, value in user_dict.items():
+            setattr(patient.user, key, value)
+
+        allergies_ids = [
+            allergy["id"]
+            for allergy in patients_ns.payload["allergies"]
+            if allergy["id"] != 0
+        ]
+        selected_allergies = Allergy.query.filter(Allergy.id.in_(allergies_ids)).all()
+
+        allergies_names = [
+            allergy["name"]
+            for allergy in patients_ns.payload["allergies"]
+            if allergy["id"] == 0
+        ]
+        for name in allergies_names:
+            allergy = Allergy(name=name)
+            selected_allergies.append(allergy)
+
+        patient.allergies = []
+        patient.allergies.extend(selected_allergies)
+
+        db.session.commit()
+        return patient, 201
