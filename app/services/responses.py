@@ -35,6 +35,7 @@ service_sells_response = api.model(
             description="The id of sell in which the supply was sold"
         ),
         "service_id": fields.Integer(description="The id of the service that was sold"),
+        "service": fields.Nested(service_response),
         "quantity": fields.Integer(description="The quantity that was sold"),
         "price": fields.Float(
             description="The unit price in which each service was sold"
