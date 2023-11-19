@@ -212,7 +212,7 @@ class AppointmentsFinish(Resource):
     method_decorators = [jwt_required()]
 
     @appointments_ns.doc(security="jsonWebToken")
-    @role_required([UserRole.ADMIN])
+    @role_required([UserRole.ADMIN, UserRole.DENTIST])
     @appointments_ns.expect(finish_appointment_request, validate=True)
     def post(self, id):
         appointment = Appointment.query.get_or_404(id)
