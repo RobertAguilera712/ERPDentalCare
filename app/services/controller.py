@@ -14,13 +14,13 @@ class ServicesListAPI(Resource):
     method_decorators = [jwt_required()]
 
     @services_ns.doc(security="jsonWebToken")
-    @role_required([UserRole.ADMIN])
+    @role_required([UserRole.ADMIN, UserRole.DENTIST])
     @services_ns.marshal_list_with(service_response)
     def get(self):
         return Service.query.filter(Service.status == RowStatus.ACTIVO).all()
 
     @services_ns.doc(security="jsonWebToken")
-    @role_required([UserRole.ADMIN])
+    @role_required([UserRole.ADMIN, UserRole.DENTIST])
     @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def post(self):

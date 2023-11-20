@@ -15,7 +15,7 @@ class SupplyListAPI(Resource):
     method_decorators = [jwt_required()]
 
     @supplies_ns.doc(security="jsonWebToken")
-    @role_required([UserRole.ADMIN])
+    @role_required([UserRole.ADMIN, UserRole.DENTIST])
     @supplies_ns.marshal_list_with(supply_response)
     @supplies_ns.expect(parser, validate=True)
     def get(self):
