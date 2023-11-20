@@ -46,7 +46,7 @@ class AllergiesListAPI(Resource):
     method_decorators = [jwt_required()]
 
     @get_ns.doc(security="jsonWebToken")
-    @role_required([UserRole.ADMIN])
+    @role_required([UserRole.ADMIN, UserRole.PATIENT])
     @get_ns.marshal_list_with(allergy_response)
     def get(self):
         return Allergy.query.filter(Allergy.status == RowStatus.ACTIVO).all()
