@@ -1,5 +1,14 @@
 from flask_restx import Resource, Namespace, abort
-from app.models import Person, User, Patient, Allergy, RowStatus, UserRole
+from app.models import (
+    Person,
+    User,
+    Patient,
+    Allergy,
+    RowStatus,
+    UserRole,
+    Appointment,
+    AppointmentStatus,
+)
 from app.extensions import db, bcrypt, authorizations, role_required
 from app.appointments.responses import appointment_response
 from app.sells.responses import sell_response
@@ -9,6 +18,7 @@ from flask_jwt_extended import (
     jwt_required,
     current_user,
 )
+from datetime import datetime
 
 
 patients_ns = Namespace("api", authorizations=authorizations)
@@ -143,6 +153,60 @@ class PatientsApi(Resource):
         return {}, 204
 
 
+@patients_ns.route("/patients/<int:id>/appointments")
+class PatientAppointments(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    @patients_ns.marshal_with(appointment_response)
+    def get(self, id):
+        patient = Patient.query.filter(
+            Patient.id == id, Patient.status == RowStatus.ACTIVO
+        ).first()
+        if not patient:
+            abort(404, "The patient does not exist")
+        return patient.appointments_query.filter(
+            Appointment.end_date > datetime.now()
+        ).all()
+
+
+@patients_ns.route("/patients/<int:id>/record")
+class PatientRecord(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    @patients_ns.marshal_with(appointment_response)
+    def get(self, id):
+        patient = Patient.query.filter(
+            Patient.id == id, Patient.status == RowStatus.ACTIVO
+        ).first()
+        if not patient:
+            abort(404, "The patient does not exist")
+        return patient.appointments_query.filter(
+            Appointment.end_date < datetime.now(),
+            Appointment.status == AppointmentStatus.ATENDIDA,
+        ).all()
+
+
+@patients_ns.route("/patients/my/record")
+class PatientMyRecord(Resource):
+    method_decorators = [jwt_required()]
+
+    @patients_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.PATIENT])
+    @patients_ns.marshal_with(appointment_response)
+    def get(self):
+        patient = Patient.query.filter(Patient.user == current_user).first()
+        if not patient:
+            abort(404, "The dentist does not exists")
+        return patient.appointments_query.filter(
+            Appointment.end_date < datetime.now(),
+            Appointment.status == AppointmentStatus.ATENDIDA,
+        ).all()
+
+
 @patients_ns.route("/patients/my/appointments")
 class PatientMyAppointments(Resource):
     method_decorators = [jwt_required()]
@@ -154,7 +218,9 @@ class PatientMyAppointments(Resource):
         patient = Patient.query.filter(Patient.user == current_user).first()
         if not patient:
             abort(404, "The dentist does not exists")
-        return patient.appointments
+        return patient.appointments_query.filter(
+            Appointment.end_date > datetime.now()
+        ).all()
 
 
 @patients_ns.route("/patients/my/sells")
