@@ -11,6 +11,19 @@ db = SQLAlchemy()
 jwt = JWTManager()
 bcrypt = Bcrypt()
 
+from app.models import RowStatus
+
+choices = [status.name for status in RowStatus]
+choices.append("ALL")
+parser = api.parser()
+parser.add_argument(
+    "status",
+    type=str,
+    help="The status of the registers returned from this endpoint",
+    choices=choices,
+    required=False,
+)
+
 authorizations = {
     "jsonWebToken": {"type": "apiKey", "in": "header", "name": "Authorization"}
 }
@@ -24,7 +37,10 @@ def role_required(allowed_roles):
                 abort(404, "The user does not exists")
 
             if current_user.role not in allowed_roles:
-                abort(403, f"{current_user.email} You do not have the permissions to access to this route")
+                abort(
+                    403,
+                    f"{current_user.email} You do not have the permissions to access to this route",
+                )
 
             return fn(*args, **kwargs)
 

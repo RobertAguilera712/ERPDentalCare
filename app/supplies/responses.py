@@ -30,6 +30,9 @@ supply_response = api.model(
         "image": fields.String(
             description="The image of the supply encoded as base64 string"
         ),
+        "status": fields.String(
+            description="The status of the supply", attribute="status.name"
+        ),
     },
 )
 

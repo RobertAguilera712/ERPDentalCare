@@ -1,6 +1,6 @@
 from flask_restx import Resource, Namespace, abort
 from app.models import Supply, RowStatus, SupplyBuys, UserRole
-from app.extensions import db, authorizations, role_required
+from app.extensions import db, authorizations, role_required, parser
 from .responses import supply_response, supply_buy_response, supply_sells_response
 from .requests import supply_request, buy_supply_request
 from datetime import datetime
@@ -17,8 +17,14 @@ class SupplyListAPI(Resource):
     @supplies_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
     @supplies_ns.marshal_list_with(supply_response)
+    @supplies_ns.expect(parser, validate=True)
     def get(self):
-        return Supply.query.filter(Supply.status == RowStatus.ACTIVO).all()
+        args = parser.parse_args()
+        status_param = args.get("status")
+        if status_param in RowStatus.__members__:
+            status = RowStatus[status_param]
+            return Supply.query.filter(Supply.status == status).all()
+        return Supply.query.all()
 
     @supplies_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
