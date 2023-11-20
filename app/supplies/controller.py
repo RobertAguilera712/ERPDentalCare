@@ -126,11 +126,19 @@ class SupplyBuysApi(Resource):
         quantity = request["quantity"]
         str_expiration_date = request.get("expiration_date")
         date_format = "%Y-%m-%d"
-        expiration_date = (
-            datetime.strptime(str_expiration_date, date_format)
-            if str_expiration_date
-            else None
-        )
+        try:
+            expiration_date = (
+                datetime.strptime(str_expiration_date, date_format)
+                if str_expiration_date
+                else None
+            )
+        except Exception as ex:
+            print(f"An error occurred while adding the supply buy {str(ex)}")
+            abort(
+                500,
+                "Failed to add the buy. Try again later. The provided expiration date is in a wrong format. The format should be yyyy-mm-dd, ex: 2023-12-07",
+            )
+
         available_use_quantity = quantity * supply.equivalence
 
         buy = SupplyBuys(
