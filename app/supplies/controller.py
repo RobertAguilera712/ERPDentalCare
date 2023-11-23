@@ -21,6 +21,7 @@ class SupplyListAPI(Resource):
     def get(self):
         args = parser.parse_args()
         status_param = args.get("status")
+        status_param = status_param.upper() if status_param else None
         if status_param in RowStatus.__members__:
             status = RowStatus[status_param]
             return Supply.query.filter(Supply.status == status).all()

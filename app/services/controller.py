@@ -1,6 +1,6 @@
-from flask_restx import Resource, Namespace
+from flask_restx import Resource, Namespace, abort
 from app.models import Service, ServiceSupplies, RowStatus, UserRole
-from app.extensions import db, authorizations, role_required
+from app.extensions import db, authorizations, role_required, parser
 from .responses import service_response, service_sells_response
 from .requests import service_request
 from flask_jwt_extended import jwt_required
@@ -16,8 +16,15 @@ class ServicesListAPI(Resource):
     @services_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN, UserRole.DENTIST])
     @services_ns.marshal_list_with(service_response)
+    @services_ns.expect(parser)
     def get(self):
-        return Service.query.filter(Service.status == RowStatus.ACTIVO).all()
+        args = parser.parse_args()
+        status_param = args.get("status")
+        status_param = status_param.upper() if status_param else None
+        if status_param in RowStatus.__members__:
+            status = RowStatus[status_param]
+            return Service.query.filter(Service.status == status).all()
+        return Service.query.all()
 
     @services_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN, UserRole.DENTIST])
@@ -39,9 +46,14 @@ class ServicesListAPI(Resource):
             supplies.append(service_supply)
 
         service.supplies_query.extend(supplies)
-        db.session.add(service)
-        db.session.commit()
-        return service, 201
+        try:
+            db.session.add(service)
+            db.session.commit()
+            return service, 201
+        except Exception as ex:
+            db.session.rollback()
+            print(f"Error while creating the service {str(ex)}")
+            abort(500, "Failed to create the service. Try again later")
 
 
 @services_ns.route("/services/<int:id>/sells")
@@ -95,13 +107,23 @@ class ServicesApi(Resource):
 
         service.supplies_query.extend(supplies)
 
-        db.session.commit()
-        return service, 201
+        try:
+            db.session.commit()
+            return service, 201
+        except Exception as ex:
+            db.session.rollback()
+            print(f"Error while modifying the service {str(ex)}")
+            abort(500, "Failed to edit the service. Try again later")
 
     @services_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         service = Service.query.get_or_404(id)
         service.status = RowStatus.INACTIVO
-        db.session.commit()
-        return {}, 204
+        try:
+            db.session.commit()
+            return {}, 204
+        except Exception as ex:
+            db.session.rollback()
+            print(f"Error while deleting the service {str(ex)}")
+            abort(500, "Failed to delete the service. Try again later")

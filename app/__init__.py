@@ -5,6 +5,7 @@ from .patients.controller import patients_ns
 from .dentists.controller import dentists_ns
 from .supplies.controller import supplies_ns
 from .services.controller import services_ns
+from .allergies.controller import allergies_ns
 from .appointments.controller import appointments_ns
 from .sells.controller import sells_ns
 from .get.controller import get_ns
@@ -30,6 +31,7 @@ def create_app():
     api.add_namespace(services_ns)
     api.add_namespace(appointments_ns)
     api.add_namespace(sells_ns)
+    api.add_namespace(allergies_ns)
 
     @jwt.user_identity_loader
     def user_identity_lookup(user):

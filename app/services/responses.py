@@ -6,8 +6,12 @@ service_supplies_response = api.model(
     "service_supplies_response",
     {
         "id": fields.Integer(description="Unique identifier for this register"),
-        "quantity": fields.Float(description="The quantity in which the supply is used for this service"),
-        "supply": fields.Nested(supply_response, description="The supply that is used in this service")
+        "quantity": fields.Float(
+            description="The quantity in which the supply is used for this service"
+        ),
+        "supply": fields.Nested(
+            supply_response, description="The supply that is used in this service"
+        ),
     },
 )
 
@@ -16,7 +20,7 @@ service_response = api.model(
     {
         "id": fields.Integer(description="Unique identifier for the service"),
         "name": fields.String(
-            description="The name of th service",
+            description="The name of the service",
         ),
         "price": fields.Float(description="The price of the service"),
         "supplies": fields.List(
@@ -24,6 +28,9 @@ service_response = api.model(
             description="The supplies that are used in this service.",
         ),
         "cost": fields.Float(description="The cost of the service"),
+        "status": fields.String(
+            description="The status of the service", attribute="status.name"
+        ),
     },
 )
 

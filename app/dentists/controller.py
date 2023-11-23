@@ -10,7 +10,7 @@ from app.models import (
     Appointment,
     AppointmentStatus,
 )
-from app.extensions import db, authorizations, bcrypt, role_required
+from app.extensions import db, authorizations, bcrypt, role_required, parser
 from app.appointments.responses import appointment_response
 from .responses import dentist_response
 from .requests import dentist_request, edit_dentist_request
@@ -31,8 +31,15 @@ class DentistListAPI(Resource):
     @dentists_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
     @dentists_ns.marshal_list_with(dentist_response)
+    @dentists_ns.expect(parser)
     def get(self):
-        return Dentist.query.filter(Dentist.status == RowStatus.ACTIVO).all()
+        args = parser.parse_args()
+        status_param = args.get("status")
+        status_param = status_param.upper() if status_param else None
+        if status_param in RowStatus.__members__:
+            status = RowStatus[status_param]
+            return Dentist.query.filter(Dentist.status == status).all()
+        return Dentist.query.all()
 
     @dentists_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])

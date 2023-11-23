@@ -37,10 +37,13 @@ dentist_response = api.model(
         "start_time": fields.String(
             required=True, description="The time in which the dentist starts to work"
         ),
-    "end_time": fields.String(
+        "end_time": fields.String(
             required=True, description="The time in which the dentist ends to work"
         ),
         "frequency": fields.Nested(frequency_response),
         "diplomas": fields.List(fields.Nested(diploma_response)),
+        "status": fields.String(
+            description="The status of this dentist", attribute="status.name"
+        ),
     },
 )

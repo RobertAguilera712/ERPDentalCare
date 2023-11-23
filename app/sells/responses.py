@@ -38,7 +38,7 @@ sell_response = api.model(
             fields.Nested(supply_sells_response),
             description="List of supplies in the sell",
         ),
-        "status": fields.String(description="Sell status"),
+        "status": fields.String(description="Sell status", attribute="status.name"),
     },
 )
 

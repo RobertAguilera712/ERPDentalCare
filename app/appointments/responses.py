@@ -7,7 +7,7 @@ from app.services.responses import service_sells_response
 
 
 sell_appointment_response = api.model(
-    "sell_response",
+    "sell_appointment_response",
     {
         "id": fields.Integer(readonly=True, description="The id fo this sell"),
         "patient_id": fields.Integer(
@@ -31,7 +31,7 @@ sell_appointment_response = api.model(
             fields.Nested(supply_sells_response),
             description="List of supplies in the sell",
         ),
-        "status": fields.String(description="Sell status"),
+        "status": fields.String(description="Sell status", attribute="status.name"),
     },
 )
 
@@ -55,9 +55,12 @@ appointment_response = api.model(
         ),
         "sells": fields.List(
             fields.Nested(
-                sell_appointment_response, description="The sell generated in this appointment"
+                sell_appointment_response,
+                description="The sell generated in this appointment",
             )
         ),
-        "status": fields.String(description="The status of this appointment")
+        "status": fields.String(
+            description="The status of this appointment", attribute="status.name"
+        ),
     },
 )

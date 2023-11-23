@@ -13,14 +13,11 @@ bcrypt = Bcrypt()
 
 from app.models import RowStatus
 
-choices = [status.name for status in RowStatus]
-choices.append("ALL")
 parser = api.parser()
 parser.add_argument(
     "status",
     type=str,
     help="The status of the registers returned from this endpoint",
-    choices=choices,
     required=False,
 )
 

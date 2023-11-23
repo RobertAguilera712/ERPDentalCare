@@ -12,7 +12,7 @@ from app.models import (
     RowStatus,
     UserRole,
 )
-from app.extensions import db, authorizations, role_required
+from app.extensions import db, authorizations, role_required, parser
 from sqlalchemy import or_, and_
 from flask_jwt_extended import jwt_required, current_user
 from .responses import appointment_response
@@ -91,10 +91,15 @@ class AppointmentsListAllApi(Resource):
     @appointments_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
     @appointments_ns.marshal_list_with(appointment_response)
+    @appointments_ns.expect(parser)
     def get(self):
-        return Appointment.query.filter(
-            Appointment.status != AppointmentStatus.CANCELADA
-        ).all()
+        args = parser.parse_args()
+        status_param = args.get("status")
+        status_param = status_param.upper() if status_param else None
+        if status_param in AppointmentStatus.__members__:
+            status = AppointmentStatus[status_param]
+            return Appointment.query.filter(AppointmentStatus == status).all()
+        return Appointment.query.all()
 
     @appointments_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
