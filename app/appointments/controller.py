@@ -98,7 +98,7 @@ class AppointmentsListAllApi(Resource):
         status_param = status_param.upper() if status_param else None
         if status_param in AppointmentStatus.__members__:
             status = AppointmentStatus[status_param]
-            return Appointment.query.filter(AppointmentStatus == status).all()
+            return Appointment.query.filter(Appointment.status == status).all()
         return Appointment.query.all()
 
     @appointments_ns.doc(security="jsonWebToken")
