@@ -14,7 +14,7 @@ class AllergiesListAPI(Resource):
     method_decorators = [jwt_required()]
 
     @allergies_ns.doc(security="jsonWebToken")
-    @role_required([UserRole.ADMIN, UserRole.DENTIST])
+    @role_required([UserRole.ADMIN, UserRole.DENTIST, UserRole.PATIENT])
     @allergies_ns.marshal_list_with(allergy_response)
     @allergies_ns.expect(parser)
     def get(self):
