@@ -32,6 +32,12 @@ class SupplyListAPI(Resource):
     @supplies_ns.expect(supply_request, validate=True)
     @supplies_ns.marshal_with(supply_response)
     def post(self):
+        existing_supply = Supply.query.filter(
+            Supply.status == RowStatus.ACTIVO,
+            Supply.name == supplies_ns.payload["name"],
+        ).first()
+        if existing_supply:
+            abort(400, "A supply with the same name already exists.")
         supply = Supply(**supplies_ns.payload)
         try:
             db.session.add(supply)
@@ -60,6 +66,14 @@ class SupplyApi(Resource):
     @supplies_ns.marshal_with(supply_response)
     def put(self, id):
         supply = Supply.query.get_or_404(id)
+
+        existing_supply = Supply.query.filter(
+            Supply.id != supply.id,
+            Supply.status == RowStatus.ACTIVO,
+            Supply.name == supplies_ns.payload["name"],
+        ).first()
+        if existing_supply:
+            abort(400, "A supply with the same name already exists.")
 
         supply_dict = supplies_ns.payload
 

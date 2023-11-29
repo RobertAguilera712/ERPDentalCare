@@ -31,6 +31,13 @@ class ServicesListAPI(Resource):
     @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def post(self):
+        existing_service = Service.query.filter(
+            Service.status == RowStatus.ACTIVO,
+            Service.name == services_ns.payload["name"],
+        ).first()
+        if existing_service:
+            abort(400, "A service with the same name already exists.")
+
         service = Service(
             name=services_ns.payload["name"], price=services_ns.payload["price"]
         )
@@ -84,6 +91,14 @@ class ServicesApi(Resource):
     @services_ns.expect(service_request, validate=True)
     @services_ns.marshal_with(service_response)
     def put(self, id):
+        existing_service = Service.query.filter(
+            Service.id != id,
+            Service.status == RowStatus.ACTIVO,
+            Service.name == services_ns.payload["name"],
+        ).first()
+        if existing_service:
+            abort(400, "A service with the same name already exists.")
+
         service = Service.query.get_or_404(id)
 
         service_dict = services_ns.payload
