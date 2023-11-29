@@ -31,7 +31,13 @@ class AllergiesListAPI(Resource):
     @allergies_ns.expect(allergy_request, validate=True)
     @allergies_ns.marshal_with(allergy_response, code=201)
     def post(self):
-        allergy = Allergy(name=allergies_ns.payload["name"])
+        name = allergies_ns.payload["name"]
+        existing_allergy = Allergy.query.filter(Allergy.status == RowStatus.ACTIVO, Allergy.name == name).first()
+
+        if existing_allergy:
+            abort(400, "An allergy with the same name already exists")
+
+        allergy = Allergy(name=name)
 
         try:
             db.session.add(allergy)
@@ -60,7 +66,13 @@ class allergiesApi(Resource):
     def put(self, id):
         allergy = Allergy.query.get_or_404(id)
 
-        allergy.name = allergies_ns.payload["name"]
+        name = allergies_ns.payload["name"]
+        existing_allergy = Allergy.query.filter(Allergy.id != allergy.id, Allergy.status == RowStatus.ACTIVO, Allergy.name == name).first()
+
+        if existing_allergy:
+            abort(400, "An allergy with the same name already exists")
+
+        allergy.name = name
 
         try:
             db.session.commit()
