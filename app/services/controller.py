@@ -116,13 +116,14 @@ class ServicesApi(Resource):
             abort(500, "Failed to edit the service. Try again later")
 
     @services_ns.doc(security="jsonWebToken")
+    @services_ns.marshal_with(service_response)
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         service = Service.query.get_or_404(id)
         service.status = RowStatus.INACTIVO
         try:
             db.session.commit()
-            return {}, 204
+            return service
         except Exception as ex:
             db.session.rollback()
             print(f"Error while deleting the service {str(ex)}")

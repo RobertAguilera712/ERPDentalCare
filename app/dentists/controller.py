@@ -291,9 +291,10 @@ class DentistApi(Resource):
             abort(500, "Failed to update the dentist. Please try again later.")
 
     @dentists_ns.doc(security="jsonWebToken")
+    @dentists_ns.marshal_with(dentist_response)
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         dentist = Dentist.query.get_or_404(id)
         dentist.status = RowStatus.INACTIVO
         db.session.commit()
-        return {}, 204
+        return dentist

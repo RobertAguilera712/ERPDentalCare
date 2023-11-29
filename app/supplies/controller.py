@@ -75,12 +75,13 @@ class SupplyApi(Resource):
             abort(500, "Failed tho edit the supply. Try again later")
 
     @supplies_ns.doc(security="jsonWebToken")
+    @supplies_ns.marshal_with(supply_response)
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         supply = Supply.query.get_or_404(id)
         supply.status = RowStatus.INACTIVO
         db.session.commit()
-        return {}, 204
+        return supply
 
 
 @supplies_ns.route("/supplies/<int:id>/buys")

@@ -200,12 +200,13 @@ class AppointmentsListApi(Resource):
 
     @appointments_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN])
+    @appointments_ns.marshal_with(appointment_response)
     def delete(self, id):
         appointment = Appointment.query.get_or_404(id)
         appointment.status = AppointmentStatus.CANCELADA
         try:
             db.session.commit()
-            return {}, 204
+            return appointment
         except Exception as ex:
             db.session.rollback()
             print(f"Error while updating the status of the appointment {str(ex)}")

@@ -152,12 +152,13 @@ class PatientsApi(Resource):
         return patient, 201
 
     @patients_ns.doc(security="jsonWebToken")
+    @patients_ns.marshal_with(patient_response)
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         patient = Patient.query.get_or_404(id)
         patient.status = RowStatus.INACTIVO
         db.session.commit()
-        return {}, 204
+        return patient
 
 
 @patients_ns.route("/patients/<int:id>/appointments")

@@ -32,7 +32,9 @@ class AllergiesListAPI(Resource):
     @allergies_ns.marshal_with(allergy_response, code=201)
     def post(self):
         name = allergies_ns.payload["name"]
-        existing_allergy = Allergy.query.filter(Allergy.status == RowStatus.ACTIVO, Allergy.name == name).first()
+        existing_allergy = Allergy.query.filter(
+            Allergy.status == RowStatus.ACTIVO, Allergy.name == name
+        ).first()
 
         if existing_allergy:
             abort(400, "An allergy with the same name already exists")
@@ -47,6 +49,7 @@ class AllergiesListAPI(Resource):
             db.session.rollback()
             print(f"Error while creating the allergy")
             abort(500, "Failed to create the allergy. Try again later")
+
 
 @allergies_ns.route("/allergies/<int:id>")
 class allergiesApi(Resource):
@@ -67,7 +70,11 @@ class allergiesApi(Resource):
         allergy = Allergy.query.get_or_404(id)
 
         name = allergies_ns.payload["name"]
-        existing_allergy = Allergy.query.filter(Allergy.id != allergy.id, Allergy.status == RowStatus.ACTIVO, Allergy.name == name).first()
+        existing_allergy = Allergy.query.filter(
+            Allergy.id != allergy.id,
+            Allergy.status == RowStatus.ACTIVO,
+            Allergy.name == name,
+        ).first()
 
         if existing_allergy:
             abort(400, "An allergy with the same name already exists")
@@ -82,15 +89,15 @@ class allergiesApi(Resource):
             print(f"Error while modifying the allergy {str(ex)}")
             abort(500, "Failed to modify the allergy. Try again later")
 
-
     @allergies_ns.doc(security="jsonWebToken")
+    @allergies_ns.marshal_with(allergy_response)
     @role_required([UserRole.ADMIN])
     def delete(self, id):
         allergy = Allergy.query.get_or_404(id)
         allergy.status = RowStatus.INACTIVO
         try:
             db.session.commit()
-            return {}, 204
+            return allergy
         except Exception as ex:
             db.session.rollback()
             print(f"Error while deleting the allergy {str(ex)}")
