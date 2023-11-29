@@ -5,11 +5,17 @@ from flask_bcrypt import Bcrypt
 from functools import wraps
 from flask import request, jsonify
 from flask_jwt_extended import current_user
+from onesignal_sdk.client import Client
 
 api = Api()
 db = SQLAlchemy()
 jwt = JWTManager()
 bcrypt = Bcrypt()
+
+onesignal_app_id = "93573d5a-e00c-4bfd-8ead-439a5b74e6eb"
+onesignal_rest_api_key = "Nzk5MDUyNmMtYzQwYS00MDY3LThkMjQtY2U2ZTk2MDY0MjJj"
+
+onesignal_client = Client(app_id=onesignal_app_id, rest_api_key=onesignal_rest_api_key)
 
 from app.models import RowStatus
 

@@ -12,7 +12,7 @@ from app.models import (
     RowStatus,
     UserRole,
 )
-from app.extensions import db, authorizations, role_required, parser
+from app.extensions import db, authorizations, role_required, parser, onesignal_client, onesignal_app_id, onesignal_rest_api_key
 from sqlalchemy import or_, and_
 from flask_jwt_extended import jwt_required, current_user
 from .responses import appointment_response
@@ -21,7 +21,7 @@ from .requests import (
     get_appointments_request,
     finish_appointment_request,
 )
-from datetime import datetime
+from datetime import datetime, timedelta
 
 appointments_ns = Namespace("api", authorizations=authorizations)
 
@@ -76,6 +76,21 @@ class AppointmentsAPI(Resource):
         try:
             db.session.add(appointment)
             db.session.commit()
+
+            # Schedule notification for 10 minutes from now
+            send_after = start_date - timedelta(days=1)
+            send_after = send_after.replace(hour=12, minute=0, second=0, microsecond=0)
+
+            # Send scheduled notification to a specific user
+            notification = {
+                'app_id': onesignal_app_id,
+                'include_external_user_ids': [patient.user.email],
+                'contents': {'en': f"Tienes una cita programada para el día {datetime.strftime(start_date, '%d/%m/%y')} a las {datetime.strftime(start_date, '%I:%M %p')}"},
+                'send_after': send_after.isoformat(),
+            }
+
+            onesignal_client.send_notification(notification)
+
             return appointment, 201
         except Exception as e:
             # Handle other exceptions, log the error, and return a 500 Internal Server Error response
@@ -213,6 +228,33 @@ class AppointmentsListApi(Resource):
             abort(500, "Failed to cancel the appointment. Try again later")
 
 
+@appointments_ns.route("/appointment/<int:id>/notify")
+class AppointmentsNotify(Resource):
+    method_decorators = [jwt_required()]
+
+    @appointments_ns.doc(security="jsonWebToken")
+    @role_required([UserRole.ADMIN])
+    def get(self, id):
+        appointment = Appointment.query.get_or_404(id)
+
+        # Schedule notification for 10 minutes from now
+        send_after = appointment.start_date - timedelta(days=1)
+        send_after = send_after.replace(hour=12, minute=0, second=0, microsecond=0)
+
+        # Send scheduled notification to a specific user
+        notification = {
+            'app_id': onesignal_app_id,
+            'include_external_user_ids': [appointment.patient.user.email],
+            'contents': {'en': f"Tienes una cita programada para el día {datetime.strftime(appointment.start_date, '%d/%m/%y')} a las {datetime.strftime(appointment.start_date, '%I:%M %p')}"},
+            'send_after': send_after.isoformat(),
+        }
+
+        response = onesignal_client.send_notification(notification)
+        print(response.body)
+
+        return {"message": "notification sent successfully"}, 200
+
+
 @appointments_ns.route("/appointment/<int:id>/finish")
 class AppointmentsFinish(Resource):
     method_decorators = [jwt_required()]
@@ -329,7 +371,7 @@ class AppointmentsFinish(Resource):
             db.session.commit()
             appointment.status = AppointmentStatus.ATENDIDA
             db.session.commit()
-            return {}, 204
+            return {"message": "Appointment finished successfully"}, 200
         except Exception as ex:
             db.session.rollback()
             print(f"Error while creating the sell {str(ex)}")

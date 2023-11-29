@@ -173,7 +173,7 @@ class SupplyBuysApi(Resource):
         try:
             db.session.add(buy)
             db.session.commit()
-            return {}, 204
+            return {"message": "Supply bought successfully"}, 200
         except Exception as ex:
             db.session.rollback()
             print(f"An error occurred while adding the supply buy {ex}")
