@@ -12,7 +12,7 @@ db = SQLAlchemy()
 jwt = JWTManager()
 bcrypt = Bcrypt()
 
-onesignal_app_id = "93573d5a-e00c-4bfd-8ead-439a5b74e6eb"
+onesignal_app_id = "e06c0f1d-2c1a-4fc4-9439-093d532909e9"
 onesignal_rest_api_key = "Nzk5MDUyNmMtYzQwYS00MDY3LThkMjQtY2U2ZTk2MDY0MjJj"
 
 onesignal_client = Client(app_id=onesignal_app_id, rest_api_key=onesignal_rest_api_key)
