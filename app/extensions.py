@@ -13,7 +13,7 @@ jwt = JWTManager()
 bcrypt = Bcrypt()
 
 onesignal_app_id = "e06c0f1d-2c1a-4fc4-9439-093d532909e9"
-onesignal_rest_api_key = "Nzk5MDUyNmMtYzQwYS00MDY3LThkMjQtY2U2ZTk2MDY0MjJj"
+onesignal_rest_api_key = "MjE1NDg4NzktODcwOS00Y2I4LTk1MzAtMTVjMGM3NmE2Njg1"
 
 onesignal_client = Client(app_id=onesignal_app_id, rest_api_key=onesignal_rest_api_key)
 

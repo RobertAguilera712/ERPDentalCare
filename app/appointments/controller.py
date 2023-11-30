@@ -22,6 +22,7 @@ from .requests import (
     finish_appointment_request,
 )
 from datetime import datetime, timedelta
+from onesignal_sdk.error import OneSignalHTTPError
 
 appointments_ns = Namespace("api", authorizations=authorizations)
 
@@ -81,16 +82,26 @@ class AppointmentsAPI(Resource):
             send_after = start_date - timedelta(days=1)
             send_after = send_after.replace(hour=12, minute=0, second=0, microsecond=0)
 
-            # Send scheduled notification to a specific user
+
+            message = f"Tienes una cita programada para el día {datetime.strftime(appointment.start_date, '%d/%m/%y')} a las {datetime.strftime(appointment.start_date, '%I:%M %p')}"
+            user_id = appointment.patient.user.email
             notification = {
-                'app_id': onesignal_app_id,
-                'include_external_user_ids': [patient.user.email],
-                'contents': {'en': f"Tienes una cita programada para el día {datetime.strftime(start_date, '%d/%m/%y')} a las {datetime.strftime(start_date, '%I:%M %p')}"},
+                'contents': {'en': message},
+                "include_aliases": {
+                    "external_id": [user_id]
+                },
+                "target_channel": "push",
                 'send_after': send_after.isoformat(),
             }
 
-            onesignal_client.send_notification(notification)
-
+            try:
+                response = onesignal_client.send_notification(notification)
+                print("___________________NOTIFICATION_________________________")
+                print(response.body)
+            except OneSignalHTTPError as e: # An exception is raised if response.status_code != 2xx
+                print(e)
+                print(e.status_code)
+                print(e.http_response.json())
             return appointment, 201
         except Exception as e:
             # Handle other exceptions, log the error, and return a 500 Internal Server Error response
@@ -237,22 +248,27 @@ class AppointmentsNotify(Resource):
     def get(self, id):
         appointment = Appointment.query.get_or_404(id)
 
-        # Schedule notification for 10 minutes from now
-        send_after = appointment.start_date - timedelta(days=1)
-        send_after = send_after.replace(hour=12, minute=0, second=0, microsecond=0)
 
-        # Send scheduled notification to a specific user
+        message = f"Tienes una cita programada para el día {datetime.strftime(appointment.start_date, '%d/%m/%y')} a las {datetime.strftime(appointment.start_date, '%I:%M %p')}"
+        user_id = appointment.patient.user.email
         notification = {
-            'app_id': onesignal_app_id,
-            'include_external_user_ids': [appointment.patient.user.email],
-            'contents': {'en': f"Tienes una cita programada para el día {datetime.strftime(appointment.start_date, '%d/%m/%y')} a las {datetime.strftime(appointment.start_date, '%I:%M %p')}"},
-            'send_after': send_after.isoformat(),
+            'contents': {'en': message},
+            "include_aliases": {
+                "external_id": [user_id]
+            },
+            "target_channel": "push"
         }
 
-        response = onesignal_client.send_notification(notification)
-        print(response.body)
+        try:
+            response = onesignal_client.send_notification(notification)
+            print(response.body)
+            return {"message": "notification sent successfully"}, 200
+        except OneSignalHTTPError as e: # An exception is raised if response.status_code != 2xx
+            print(e)
+            print(e.status_code)
+            print(e.http_response.json())
+            abort(500, "There was an error while sending the notification. Try again later")
 
-        return {"message": "notification sent successfully"}, 200
 
 
 @appointments_ns.route("/appointment/<int:id>/finish")
