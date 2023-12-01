@@ -44,8 +44,7 @@ edit_dentist_request = api.model(
         "professional_license": fields.String(
             required=True, description="Name of the person", max_length=45
         ),
-        "hired_at": fields.Date(
-            required=True, description="The date in which this dentist was hired"
+        "hired_at": fields.Date(description="The date in which this dentist was hired"
         ),
         "position": fields.String(
             required=True,
