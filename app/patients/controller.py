@@ -85,7 +85,7 @@ class PatientsListAPI(Resource):
         try:
             db.session.add(patient)
             db.session.commit()
-            return patient, 201
+            return patient, 200
         except Exception as e:
             db.session.rollback()
             print(f"Error creating patient: {str(e)}")
@@ -149,7 +149,7 @@ class PatientsApi(Resource):
         patient.allergies.extend(selected_allergies)
 
         db.session.commit()
-        return patient, 201
+        return patient, 200
 
     @patients_ns.doc(security="jsonWebToken")
     @patients_ns.marshal_with(patient_response)
@@ -193,8 +193,7 @@ class PatientRecord(Resource):
         if not patient:
             abort(404, "The patient does not exist")
         return patient.appointments_query.filter(
-            Appointment.end_date < datetime.now(),
-            Appointment.status == AppointmentStatus.ATENDIDA,
+            Appointment.status == AppointmentStatus.ATENDIDA
         ).all()
 
 
@@ -210,8 +209,7 @@ class PatientMyRecord(Resource):
         if not patient:
             abort(404, "The dentist does not exists")
         return patient.appointments_query.filter(
-            Appointment.end_date < datetime.now(),
-            Appointment.status == AppointmentStatus.ATENDIDA,
+            Appointment.status == AppointmentStatus.ATENDIDA
         ).all()
 
 
@@ -304,4 +302,4 @@ class PatientMySells(Resource):
         patient.allergies.extend(selected_allergies)
 
         db.session.commit()
-        return patient, 201
+        return patient, 200

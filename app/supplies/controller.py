@@ -42,7 +42,7 @@ class SupplyListAPI(Resource):
         try:
             db.session.add(supply)
             db.session.commit()
-            return supply, 201
+            return supply, 200
         except Exception as ex:
             db.session.rollback()
             print(f"An error ocurred while creating the new supply {str(ex)}")
@@ -82,7 +82,7 @@ class SupplyApi(Resource):
 
         try:
             db.session.commit()
-            return supply, 201
+            return supply, 200
         except Exception as ex:
             db.session.rollback()
             print(f"Error while modifying the supply {str(ex)}")

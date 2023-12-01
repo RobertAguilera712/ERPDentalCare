@@ -56,7 +56,7 @@ class ServicesListAPI(Resource):
         try:
             db.session.add(service)
             db.session.commit()
-            return service, 201
+            return service, 200
         except Exception as ex:
             db.session.rollback()
             print(f"Error while creating the service {str(ex)}")
@@ -124,7 +124,7 @@ class ServicesApi(Resource):
 
         try:
             db.session.commit()
-            return service, 201
+            return service, 200
         except Exception as ex:
             db.session.rollback()
             print(f"Error while modifying the service {str(ex)}")

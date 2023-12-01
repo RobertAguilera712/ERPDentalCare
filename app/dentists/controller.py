@@ -92,7 +92,7 @@ class DentistListAPI(Resource):
         try:
             db.session.add(dentist)
             db.session.commit()
-            return dentist, 201
+            return dentist, 200
         except Exception as e:
             db.session.rollback()
             print(f"Error creating dentist: {str(e)}")
@@ -130,10 +130,7 @@ class DentistRecord(Resource):
         ).first()
         if not dentist:
             abort(404, "The dentist does not exists")
-        return dentist.appointments_query.filter(
-            Appointment.end_date < datetime.datetime.now(),
-            Appointment.status == AppointmentStatus.ATENDIDA,
-        ).all()
+        return dentist.appointments_query.filter(Appointment.status == AppointmentStatus.ATENDIDA).all()
 
 
 @dentists_ns.route("/dentists/my/appointments")
@@ -164,8 +161,7 @@ class DentistMyRecord(Resource):
         if not dentist:
             abort(404, "The dentist does not exists")
         return dentist.appointments_query.filter(
-            Appointment.end_date < datetime.datetime.now(),
-            Appointment.status == AppointmentStatus.ATENDIDA,
+            Appointment.status == AppointmentStatus.ATENDIDA
         ).all()
 
 
@@ -224,7 +220,7 @@ class DentistMe(Resource):
 
         try:
             db.session.commit()
-            return dentist, 201
+            return dentist, 200
         except Exception as e:
             db.session.rollback()
             print(f"Error updating dentist: {str(e)}")
@@ -284,7 +280,7 @@ class DentistApi(Resource):
 
         try:
             db.session.commit()
-            return dentist, 201
+            return dentist, 200
         except Exception as e:
             db.session.rollback()
             print(f"Error updating dentist: {str(e)}")

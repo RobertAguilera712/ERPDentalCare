@@ -102,7 +102,7 @@ class AppointmentsAPI(Resource):
                 print(e)
                 print(e.status_code)
                 print(e.http_response.json())
-            return appointment, 201
+            return appointment, 200
         except Exception as e:
             # Handle other exceptions, log the error, and return a 500 Internal Server Error response
             db.session.rollback()
@@ -217,7 +217,7 @@ class AppointmentsListApi(Resource):
 
         try:
             db.session.commit()
-            return appointment, 201
+            return appointment, 200
         except Exception as e:
             # Handle other exceptions, log the error, and return a 500 Internal Server Error response
             db.session.rollback()

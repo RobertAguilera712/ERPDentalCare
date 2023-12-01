@@ -29,7 +29,7 @@ class AllergiesListAPI(Resource):
     @allergies_ns.doc(security="jsonWebToken")
     @role_required([UserRole.ADMIN, UserRole.DENTIST])
     @allergies_ns.expect(allergy_request, validate=True)
-    @allergies_ns.marshal_with(allergy_response, code=201)
+    @allergies_ns.marshal_with(allergy_response, code=200)
     def post(self):
         name = allergies_ns.payload["name"]
         existing_allergy = Allergy.query.filter(
@@ -44,7 +44,7 @@ class AllergiesListAPI(Resource):
         try:
             db.session.add(allergy)
             db.session.commit()
-            return allergy, 201
+            return allergy, 200
         except Exception as ex:
             db.session.rollback()
             print(f"Error while creating the allergy")
@@ -83,7 +83,7 @@ class allergiesApi(Resource):
 
         try:
             db.session.commit()
-            return allergy, 201
+            return allergy, 200
         except Exception as ex:
             db.session.rollback()
             print(f"Error while modifying the allergy {str(ex)}")
