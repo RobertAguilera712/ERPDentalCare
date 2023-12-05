@@ -225,7 +225,8 @@ class PatientMyAppointments(Resource):
         if not patient:
             abort(404, "The dentist does not exists")
         return patient.appointments_query.filter(
-            Appointment.end_date > datetime.now()
+            Appointment.end_date > datetime.now(),
+            Appointment.status == AppointmentStatus.AGENDADA
         ).all()
 
 
